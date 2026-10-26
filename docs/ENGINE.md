@@ -64,7 +64,9 @@ Additional process settings:
 - `current_dir(engine_dir)` so `$ORIGIN`/DLL lookup works.
 - Linux: `chmod 0o755` the executable if needed; own process group;
   `LD_LIBRARY_PATH` includes the engine directory.
-- Windows: `CREATE_NO_WINDOW`.
+- Windows: `CREATE_NO_WINDOW` and `BELOW_NORMAL_PRIORITY_CLASS`; the executable
+  and all engine DLLs share a directory. The Visual C++ x64 runtime is a
+  prerequisite on each test PC (see [WINDOWS.md](WINDOWS.md)).
 - Lower-than-normal priority; stdout/stderr captured into a 200-line tail.
 - `kill_on_drop(true)` plus explicit graceful-then-forced termination.
 - A PID file in app data supports orphan cleanup after a crash.
@@ -123,7 +125,7 @@ Qwen 2.5 Instruct 1.5B Q4_K_M at 5.03 tok/s generation / 6.56 tok/s prompt
 in a short native-backend compatibility sample. See `docs/benchmarks.md` for
 measurement limits; this is not a controlled pp64/tg32 baseline.
 
-### Real inference gate (Linux)
+### Real inference gate (Linux and Windows x64)
 
 Fetch the pinned Linux engine, then provide the exact catalogue Qwen 1.5B model:
 
@@ -144,8 +146,9 @@ SSSE3 on the host and never downloads weights itself; the default test suite ski
 The output heuristic rejects obvious garbage; human review of coherence and
 a timed benchmark remain separate gates. Forced backends on an Ivy Bridge
 host do not prove execution on an SSE2-only CPU. Use QEMU or a VM for that
-claim, and a clean 4 GB Linux VM for the minimum-memory gate. Windows
-validation is deferred while Linux is the active target.
+claim, and a clean 4 GB VM for the minimum-memory gate. Windows DLL staging
+and native MSVC test commands are documented in [WINDOWS.md](WINDOWS.md).
+Windows runtime validation must be recorded on a Windows machine.
 
 To validate another catalogue entry, set `TNN_TEST_MODEL_ID` alongside the
 absolute `TNN_TEST_MODEL` path. The opt-in gate also prints a short benchmark
@@ -164,7 +167,8 @@ TNN_TEST_MODEL=/absolute/path/qwen2.5-1.5b-instruct-q4_k_m.gguf \
 ## Changing the pin
 
 1. Download the new archives and compute SHA-256.
-2. Update `engine.lock.json` and the duplicate constants in both fetch scripts.
+2. Update `engine.lock.json` and the duplicate constants in `fetch-engine.sh`.
+   The PowerShell fetch script reads the lockfile directly.
 3. Run `scripts/prune-engine.sh`, then `scripts/verify-no-avx2.sh`.
 4. Run `scripts/bench-engine.sh` on the reference machine and record results in
    `docs/benchmarks.md`.

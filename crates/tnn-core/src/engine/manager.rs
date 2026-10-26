@@ -352,9 +352,9 @@ impl EngineManager {
 
         #[cfg(windows)]
         {
-            use std::os::windows::process::CommandExt;
             const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-            command.creation_flags(CREATE_NO_WINDOW);
+            const BELOW_NORMAL_PRIORITY_CLASS: u32 = 0x0000_4000;
+            command.creation_flags(CREATE_NO_WINDOW | BELOW_NORMAL_PRIORITY_CLASS);
         }
 
         let mut child = command

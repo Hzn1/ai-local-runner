@@ -1,10 +1,20 @@
 # Release
 
-Current release scope is Linux x64 only: `.deb` and AppImage. Windows
-instructions below are retained for future work. Build and validate installers
-locally; the repository has no automated publishing or deployment.
+Linux x64 packaging targets `.deb` and AppImage. Windows x64 has a local NSIS
+test-installer build path in [WINDOWS.md](WINDOWS.md); native Windows acceptance
+and signing are still pending. Build and validate installers locally; the
+repository has no automated publishing or deployment.
 
-## Prerequisites
+## Local Windows hardware test builds
+
+Run `scripts/build-windows.ps1` on Windows after installing the prerequisites
+in the Windows guide. `tauri.windows.conf.json` selects NSIS, embeds the
+WebView2 offline installer and disables updater artifacts, so these builds
+need no updater signing key. Copy the resulting setup executable to test PCs
+with the Visual C++ x64 runtime installed. Model weights remain separate.
+The public-release prerequisites below still apply before public distribution.
+
+## Public release prerequisites
 
 - Pinned engine present in `src-tauri/resources/engine` and
   `src-tauri/resources/engine-baseline` (`scripts/fetch-engine.sh`/`.ps1`).
@@ -55,9 +65,11 @@ Targets from `tauri.conf.json`:
 
 - Linux: AppImage and `.deb` (primary).
   Document `libwebkit2gtk-4.1-0` and `libgtk-3-0` dependencies.
+- Windows: NSIS from the automatically merged `tauri.windows.conf.json`.
 
-`createUpdaterArtifacts` is enabled, so Tauri emits `.sig` files next to the
-updater-capable bundles. Keep them with the artifacts.
+`createUpdaterArtifacts` is enabled for Linux, so Tauri emits `.sig` files
+next to updater-capable Linux bundles. It is disabled for local Windows test
+installers. Keep signatures with artifacts when building a signed release.
 
 ## Update manifest
 

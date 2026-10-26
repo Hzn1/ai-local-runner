@@ -2,15 +2,15 @@
 
 **Status:** In progress; Phase 0 validation pending human review  
 **Date:** 2026-10-25  
-**Target:** Linux x64 first; Windows deferred by product-owner instruction (2026-10-26)  
+**Target:** Linux x64 and Windows x64 hardware test builds (2026-10-26)
 **Stack:** Rust + Tauri v2 + Svelte 5  
 **Working title:** TNN Local AI  
 **Primary audience:** non-technical users on modest, CPU-only machines without AVX2
 
-> Current scope: implement and validate Linux support only. Windows tasks and
-> acceptance checks below remain future work and do not block the Linux phase
-> gates. Existing Windows code is retained without claiming support. All other
-> guardrails and human review gates still apply.
+> Current scope: Linux x64 plus Windows x64 builds for hardware testing, per
+> product-owner instruction on 2026-10-26. See `docs/WINDOWS.md` for the local
+> installer and testing workflow. Native Windows acceptance is pending; all
+> guardrails and human review gates still apply before a public release.
 
 ---
 

@@ -4,7 +4,7 @@ Private, CPU-only AI chat for ordinary computers. Download one small model
 once, then talk to it entirely on your machine. No account, no cloud, no
 telemetry, and no network connection during a chat.
 
-- Tauri v2 desktop app (Linux x64; Windows support deferred)
+- Tauri v2 desktop app (Linux x64; Windows x64 test builds available)
 - Svelte 5 + TypeScript frontend, Rust core, SQLite storage
 - Pinned [PrismML llama.cpp](https://github.com/PrismML-Eng/llama.cpp) CPU build
   with runtime dispatch: SSE2/x64, SSSE3 and newer tiers, no AVX2 requirement
@@ -17,6 +17,10 @@ telemetry, and no network connection during a chat.
 > model weights are not committed. Packaging, code signing and a clean 4 GB
 > machine test are still required before v1.
 
+Windows native build and runtime acceptance checks are pending. See
+[Windows hardware testing](docs/WINDOWS.md) to build an installer and test on
+your Windows PCs.
+
 Current phase evidence and remaining review gates are recorded in
 [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md).
 
@@ -25,8 +29,12 @@ Current phase evidence and remaining review gates are recorded in
 - Node.js 22+ and npm
 - Rust 1.85+ (`rustup show` should select the workspace toolchain)
 - Linux: WebKitGTK 4.1, GTK 3, and the usual Tauri build packages
+- Windows: Microsoft C++ Build Tools, Windows SDK and WebView2;
+  see [Windows setup](docs/WINDOWS.md).
 
 ## Quick start
+
+### Linux
 
 ```bash
 npm install
@@ -42,6 +50,19 @@ npm run tauri dev
 
 The app starts even without the engine: onboarding reports that the engine is
 missing and model downloads remain available. Chat needs the engine and a model.
+
+### Windows
+
+After installing the [Windows prerequisites](docs/WINDOWS.md), open 64-bit
+PowerShell in the repository and build a local test installer:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-windows.ps1
+```
+
+The script prints the setup executable's path and writes its SHA-256. Copy
+the installer to your other Windows x64 PCs. Each test PC also needs the
+Microsoft Visual C++ x64 runtime described in the Windows guide.
 
 ### Frontend-only preview
 
@@ -63,6 +84,8 @@ app” message. It is useful for styling, not for functional testing.
 | `cargo fmt --all --check` | Formatting gate |
 | `npm run tauri dev` | Run the desktop app |
 | `scripts/fetch-engine.sh` | Download and prune the pinned engine |
+| `scripts/fetch-engine.ps1` | Download and verify the Windows engine and SSE2 fallback |
+| `scripts/build-windows.ps1` | Check and build a local Windows x64 test installer |
 | `scripts/verify-no-avx2.sh` | Start the engine under an SSE2-only QEMU CPU |
 | `scripts/bench-engine.sh` | Measure prompt/generation speed |
 | `npm run tauri build` | Build desktop installers locally |
@@ -114,7 +137,7 @@ MIT-licensed; see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 ## Known gaps before v1
 
 - Generate and protect the updater keypair, then set a real update endpoint.
-- Test clean installs on Linux with 4 GB RAM / 2 cores.
+- Test clean installs on Linux and Windows with 4 GB RAM / 2 cores.
 - Run the SSE2/SSSE3 compatibility gate on real hardware or a full VM.
 - Finish the experimental model validation gate or keep those entries hidden.
 - Add platform code signing and publish checksums/updater manifests.

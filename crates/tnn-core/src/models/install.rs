@@ -20,15 +20,13 @@ pub fn atomic_install(temp: &Path, destination: &Path) -> Result<()> {
 
     // Flush the file contents to stable storage first.
     {
-        let file = File::open(temp)?;
+        // Windows FlushFileBuffers requires GENERIC_WRITE on the handle.
+        let file = fs::OpenOptions::new().write(true).open(temp)?;
         file.sync_all()?;
     }
 
-    #[cfg(windows)]
-    if destination.exists() {
-        fs::remove_file(destination)?;
-    }
-
+    // std::fs::rename replaces an existing file on both Unix and Windows.
+    // Do not delete the previous model before the replacement succeeds.
     fs::rename(temp, destination)?;
 
     #[cfg(unix)]
@@ -145,6 +143,18 @@ mod tests {
         atomic_install(&temp, &dest).unwrap();
         assert!(!temp.exists());
         assert_eq!(fs::read(&dest).unwrap(), b"payload");
+    }
+
+    #[test]
+    fn atomic_install_replaces_an_existing_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let temp = dir.path().join("a.part");
+        let dest = dir.path().join("a.gguf");
+        fs::write(&temp, b"verified replacement").unwrap();
+        fs::write(&dest, b"previous model").unwrap();
+        atomic_install(&temp, &dest).unwrap();
+        assert!(!temp.exists());
+        assert_eq!(fs::read(&dest).unwrap(), b"verified replacement");
     }
 
     #[test]

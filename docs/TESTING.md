@@ -1,8 +1,10 @@
 # Testing
 
-Current target: Linux x64. Windows columns below are future checks, not gates
-for the current Linux implementation. See `docs/ENGINE.md` for the opt-in
-real-model native/SSE2/SSSE3 inference test.
+Targets: Linux x64 and Windows x64 hardware test builds. The Windows checks
+below need native Windows evidence; the Linux suite cannot establish them.
+See [WINDOWS.md](WINDOWS.md) for prerequisites, local installer builds and
+PowerShell fixtures, and `docs/ENGINE.md` for the opt-in real-model
+native/SSE2/SSSE3 inference test.
 
 ## Fast checks (run before every commit)
 

@@ -1,6 +1,6 @@
 //! Opt-in Phase 0 gate. Never downloads weights or requires them in the default suite.
 
-#![cfg(target_os = "linux")]
+#![cfg(any(target_os = "linux", target_os = "windows"))]
 
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -19,8 +19,12 @@ use tokio_util::sync::CancellationToken;
 /// requested CPU backend. Copying also resolves library symlinks on Linux.
 fn stage_variant(source: &Path, destination: &Path, variant: &str) {
     std::fs::create_dir_all(destination).unwrap();
-    let prefix = "libggml-cpu-";
-    let backend = format!("{prefix}{variant}.so");
+    let (prefix, extension) = if cfg!(windows) {
+        ("ggml-cpu-", "dll")
+    } else {
+        ("libggml-cpu-", "so")
+    };
+    let backend = format!("{prefix}{variant}.{extension}");
     assert!(source.join(&backend).is_file(), "missing {variant} backend");
     for entry in std::fs::read_dir(source).unwrap() {
         let entry = entry.unwrap();

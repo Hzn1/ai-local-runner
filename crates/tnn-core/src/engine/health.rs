@@ -88,7 +88,7 @@ pub fn crash_error(status: std::process::ExitStatus, logs: &LogTail) -> AppError
     #[cfg(windows)]
     {
         // STATUS_ILLEGAL_INSTRUCTION / STATUS_PRIVILEGED_INSTRUCTION.
-        if matches!(status.code(), Some(0xC000_001D) | Some(0xC000_001E)) || illegal_marker {
+        if windows_instruction_exception(status.code()) || illegal_marker {
             return AppError::EngineIllegalInstruction;
         }
     }
@@ -103,4 +103,50 @@ pub fn crash_error(status: std::process::ExitStatus, logs: &LogTail) -> AppError
         )
     };
     AppError::EngineCrash { detail }
+}
+
+#[cfg(any(windows, test))]
+fn windows_instruction_exception(code: Option<i32>) -> bool {
+    // ExitStatus exposes NTSTATUS as signed i32, even when its high bit is set.
+    matches!(
+        code.map(|code| code as u32),
+        Some(0xC000_001D) | Some(0xC000_0096)
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn signed_windows_instruction_codes_are_recognized() {
+        for code in [0xC000_001D_u32, 0xC000_0096] {
+            assert!(windows_instruction_exception(Some(code as i32)));
+        }
+        assert!(!windows_instruction_exception(Some(0xC000_0135_u32 as i32)));
+        assert!(!windows_instruction_exception(Some(0xC000_001E_u32 as i32)));
+        assert!(!windows_instruction_exception(Some(1)));
+        assert!(!windows_instruction_exception(None));
+    }
+
+    #[cfg(windows)]
+    use std::os::windows::process::ExitStatusExt;
+
+    #[test]
+    #[cfg(windows)]
+    fn windows_instruction_exceptions_trigger_compatibility_fallback() {
+        let logs = Arc::new(Mutex::new(VecDeque::new()));
+        for code in [0xC000_001D, 0xC000_0096] {
+            let status = std::process::ExitStatus::from_raw(code);
+            assert!(matches!(
+                crash_error(status, &logs),
+                AppError::EngineIllegalInstruction
+            ));
+        }
+        let missing_dll = std::process::ExitStatus::from_raw(0xC000_0135);
+        assert!(matches!(
+            crash_error(missing_dll, &logs),
+            AppError::EngineCrash { .. }
+        ));
+    }
 }

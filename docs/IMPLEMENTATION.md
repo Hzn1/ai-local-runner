@@ -1,9 +1,26 @@
 # Implementation status
 
-Active scope: Linux x64, following the product-owner instruction on
-2026-10-26. Windows delivery and validation are deferred. The original plan's
+Active scope: Linux x64 and Windows x64 hardware test builds, following the
+product-owner instruction on 2026-10-26. Windows native acceptance tests are
+pending; setup and test steps are in [WINDOWS.md](WINDOWS.md). The original plan's
 human review gates remain in effect; existing code across later phases does
 not establish that those gates have passed.
+
+## Windows hardware test preparation — 2026-10-26
+
+- Added a Windows-specific NSIS configuration with offline WebView2 setup and
+  no updater-signing requirement for local test installers.
+- The PowerShell build helper verifies the pinned native/SSE2 engine payloads
+  and runs source checks before building. Fetch fixtures cover cache repair,
+  missing DLLs, checksum rejection, rollback and paths with spaces/Unicode.
+- The actual Windows engine archive was SHA-256 verified and staged using
+  PowerShell on Linux. Its VC++ runtime imports are documented in the Windows
+  guide; those runtime DLLs are not included in the engine archive.
+- The core and Tauri desktop crate passed Linux-hosted Windows GNU target
+  compile checks. This checks Windows Rust code and configuration, not native
+  MSVC packaging, DLL execution, WebView2 rendering or hardware performance.
+- Native Windows installer and inference checks remain pending on the user's
+  machines. Run the steps in [WINDOWS.md](WINDOWS.md) and record the results.
 
 ## Current model scope — 2026-10-26
 
