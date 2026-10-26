@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "version": "prism-b10826-c9c34bc",
+  "repository": "PrismML-Eng/llama.cpp",
+  "release": "prism-b10826-c9c34bc",
+  "commit": "c9c34bc",
+  "notes": "CPU-only build with runtime CPU dispatch, including x64 (SSE2) and ssse3 fallbacks. No AVX2 requirement.",
+  "archives": {
+    "linux-x64": {
+      "file": "llama-prism-b10826-c9c34bc-bin-ubuntu-x64.tar.gz",
+      "sha256": "66a250f38c3f8e2064e2f913b3a26ff5bae10955b67e8ff38c72ab48cbecf28c",
+      "size_bytes": 17912930,
+      "archive_root": "llama-prism-b10826-c9c34bc"
+    },
+    "windows-x64": {
+      "file": "llama-prism-b10826-c9c34bc-bin-win-cpu-x64.zip",
+      "sha256": "1e88ab9e858b5c2dbc30cf847947a9f923b53511ba0baf0b265353ebe1f4daa6",
+      "size_bytes": 19559127,
+      "archive_root": ""
+    }
+  },
+  "baseline_cpu_variant": "x64"
+}

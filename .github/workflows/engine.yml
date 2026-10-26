@@ -1,0 +1,44 @@
+name: Engine
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - engine.lock.json
+      - scripts/fetch-engine.sh
+      - scripts/fetch-engine.ps1
+      - scripts/prune-engine.sh
+      - .github/workflows/engine.yml
+
+permissions:
+  contents: read
+
+jobs:
+  fetch:
+    name: Fetch ${{ matrix.platform }} engine
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            platform: linux
+            shell: bash
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch and verify the pinned archive
+        if: matrix.platform == 'linux'
+        run: scripts/fetch-engine.sh
+      - name: Fail if the SHA-256 pin is inconsistent
+        shell: bash
+        run: |
+          test -f src-tauri/resources/engine/llama-server -o -f src-tauri/resources/engine/llama-server.exe
+          test -d src-tauri/resources/engine-baseline
+      - name: Upload pruned engine
+        uses: actions/upload-artifact@v4
+        with:
+          name: engine-${{ matrix.platform }}-x64
+          path: |
+            src-tauri/resources/engine/
+            src-tauri/resources/engine-baseline/
+          retention-days: 14

@@ -1,0 +1,4 @@
+[env]
+# ts-rs writes generated bindings into the frontend tree. The path is relative
+# to the directory that contains `.cargo/`, i.e. the workspace root.
+TS_RS_EXPORT_DIR = { value = "src/lib/bindings", relative = true }

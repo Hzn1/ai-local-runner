@@ -1,0 +1,44 @@
+[package]
+name = "tnn-core"
+description = "Deterministic, UI-independent core for TNN Local AI"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version = "1.85"
+
+[dependencies]
+chrono.workspace = true
+futures-util.workspace = true
+hex.workspace = true
+rand.workspace = true
+raw-cpuid.workspace = true
+reqwest.workspace = true
+rusqlite.workspace = true
+rusqlite_migration.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+sysinfo.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+tracing.workspace = true
+ts-rs.workspace = true
+uuid.workspace = true
+zip.workspace = true
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[dev-dependencies]
+mock-engine = { path = "../mock-engine" }
+serial_test = "4"
+tempfile = "3"
+wiremock = "0.6"
+
+[features]
+default = []
+# `cargo test --features ts` regenerates the TypeScript bindings.
+ts = []

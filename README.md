@@ -1,0 +1,114 @@
+# TNN Local AI
+
+Private, CPU-only AI chat for ordinary computers. Download one small model
+once, then talk to it entirely on your machine. No account, no cloud, no
+telemetry, and no network connection during a chat.
+
+- Tauri v2 desktop app (Linux x64; Windows support deferred)
+- Svelte 5 + TypeScript frontend, Rust core, SQLite storage
+- Pinned [PrismML llama.cpp](https://github.com/PrismML-Eng/llama.cpp) CPU build
+  with runtime dispatch: SSE2/x64, SSSE3 and newer tiers, no AVX2 requirement
+- Ternary Bonsai 2 catalogue (2B/4B/9B/27B); experimental BitNet/Falcon3
+  entries stay hidden until they pass the validation gate
+- English and Brazilian Portuguese UI
+
+> **Status:** working core and UI, not a public release. Engine binaries and
+> model weights are not committed. Packaging, code signing and a clean 4 GB
+> machine test are still required before v1.
+
+Current phase evidence and remaining review gates are recorded in
+[docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md).
+
+## Requirements for development
+
+- Node.js 22+ and npm
+- Rust 1.85+ (`rustup show` should select the workspace toolchain)
+- Linux: WebKitGTK 4.1, GTK 3, and the usual Tauri build packages
+
+## Quick start
+
+```bash
+npm install
+npm run check
+npm run test
+
+# Fetch the pinned engine into src-tauri/resources (verified SHA-256)
+./scripts/fetch-engine.sh
+
+# Desktop development
+npm run tauri dev
+```
+
+The app starts even without the engine: onboarding reports that the engine is
+missing and model downloads remain available. Chat needs the engine and a model.
+
+### Frontend-only preview
+
+```bash
+npm run dev
+```
+
+The browser build renders the shell, but IPC calls show the “open the desktop
+app” message. It is useful for styling, not for functional testing.
+
+## Useful commands
+
+| Command | Purpose |
+|---|---|
+| `npm run check` | Svelte + TypeScript diagnostics |
+| `npm run test` | Vitest unit tests |
+| `npm run build` | Production frontend build |
+| `cargo test --workspace` | Rust unit and integration tests |
+| `cargo fmt --all --check` | Formatting gate |
+| `npm run tauri dev` | Run the desktop app |
+| `scripts/fetch-engine.sh` | Download and prune the pinned engine |
+| `scripts/verify-no-avx2.sh` | Start the engine under an SSE2-only QEMU CPU |
+| `scripts/bench-engine.sh` | Measure prompt/generation speed |
+| `scripts/release.sh` | Test, build and sign release artifacts |
+
+See [docs/TESTING.md](docs/TESTING.md) for the full test matrix and
+[docs/RELEASE.md](docs/RELEASE.md) for signing and packaging.
+
+## Repository layout
+
+```text
+crates/tnn-core/      domain, storage, downloads, engine supervisor, chat
+crates/mock-engine/   deterministic fake llama-server for tests
+src-tauri/            Tauri wiring, IPC commands, capabilities, resources
+src/                  Svelte 5 UI, stores, types generated from Rust
+scripts/              engine fetch/prune, benchmark, compatibility, release
+docs/                 architecture, engine, models, UX, testing, release, ADRs
+engine.lock.json      pinned engine version and archive hashes
+```
+
+## Privacy and security
+
+- The engine binds to `127.0.0.1` on a random port with a per-session API key.
+  The frontend never receives the key or talks to the engine directly.
+- The CSP forbids remote scripts, fonts and images. There is no shell plugin
+  and no broad filesystem access.
+- Markdown output is sanitized; links are restricted to `http`/`https` before
+  they reach the operating system opener.
+- Downloads are HTTPS-only, host-allowlisted, revision-pinned and verified
+  against a SHA-256 in the embedded catalogue before installation.
+- Diagnostics are user-initiated and exclude prompts by default.
+- No telemetry. The `telemetry_opt_in` setting exists only for forward
+  compatibility and is off; nothing is sent anywhere.
+
+## Models and licences
+
+The catalogue is embedded at build time. Bonsai 2 entries are validated and
+downloadable; BitNet, Falcon3 and Llama3 entries are marked experimental with a
+pending validation gate and cannot be downloaded. Model weights are never
+bundled in the installer.
+
+The application is dual-licensed under MIT or Apache-2.0. The pinned engine is
+MIT-licensed; see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+## Known gaps before v1
+
+- Generate and protect the updater keypair, then set a real update endpoint.
+- Test clean installs on Linux with 4 GB RAM / 2 cores.
+- Run the SSE2/SSSE3 compatibility gate on real hardware or a full VM.
+- Finish the experimental model validation gate or keep those entries hidden.
+- Add platform code signing and publish checksums/updater manifests.

@@ -1,0 +1,40 @@
+[package]
+name = "tnn-local-ai"
+description = "TNN Local AI — private, offline chat on ordinary PCs"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version = "1.85"
+
+[lib]
+name = "tnn_local_ai_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tnn-core = { path = "../crates/tnn-core" }
+anyhow = { workspace = true }
+chrono = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tauri = { version = "~2.11.6", features = [] }
+tauri-plugin-clipboard-manager = "~2.3.3"
+tauri-plugin-dialog = "~2.7.3"
+tauri-plugin-opener = "~2.5.5"
+tauri-plugin-process = "~2.3.1"
+tauri-plugin-single-instance = "2"
+tauri-plugin-updater = "~2.12.0"
+tauri-plugin-window-state = "2"
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-appender = { workspace = true }
+tracing-subscriber = { workspace = true }
+uuid = { workspace = true }
+
+[features]
+# This feature is used for production builds where `devUrl` is not used.
+custom-protocol = ["tauri/custom-protocol"]

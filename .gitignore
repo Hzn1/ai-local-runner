@@ -1,1 +1,23 @@
 /target
+/dist
+/node_modules
+/src-tauri/target
+/src-tauri/gen
+/src-tauri/resources/engine/*
+!/src-tauri/resources/engine/.gitkeep
+/src-tauri/resources/engine-baseline/*
+!/src-tauri/resources/engine-baseline/.gitkeep
+/release-artifacts/
+.DS_Store
+*.log
+*.part
+*.gguf
+.env
+.env.*
+!.env.example
+playwright-report/
+test-results/
+coverage/
+# Never commit update signing keys.
+*.key
+!*.key.pub
