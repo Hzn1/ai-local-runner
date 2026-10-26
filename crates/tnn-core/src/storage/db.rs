@@ -44,6 +44,7 @@ impl MessageRole {
 #[ts(export)]
 pub enum MessageStatus {
     Complete,
+    Truncated,
     Streaming,
     Interrupted,
     Error,
@@ -53,6 +54,7 @@ impl MessageStatus {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Complete => "complete",
+            Self::Truncated => "truncated",
             Self::Streaming => "streaming",
             Self::Interrupted => "interrupted",
             Self::Error => "error",
@@ -61,6 +63,7 @@ impl MessageStatus {
 
     fn parse(value: &str) -> Self {
         match value {
+            "truncated" => Self::Truncated,
             "streaming" => Self::Streaming,
             "interrupted" => Self::Interrupted,
             "error" => Self::Error,

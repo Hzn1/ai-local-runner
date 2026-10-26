@@ -14,6 +14,7 @@
     showReasoning = false,
     onregenerate = undefined,
     oncopy = undefined,
+    oncontinue = undefined,
   }: {
     message: Message;
     streaming?: boolean;
@@ -21,11 +22,12 @@
     showReasoning?: boolean;
     onregenerate?: () => void;
     oncopy?: () => void;
+    oncontinue?: () => void;
   } = $props();
 
   const isUser = $derived(message.role === 'user');
   const html = $derived(
-    !isUser && message.status === 'complete'
+    !isUser && message.status !== 'streaming'
       ? renderMarkdown(message.content)
       : '',
   );
@@ -137,6 +139,21 @@
         </span>
       {/if}
 
+      {#if streaming && message.content && stage}
+        <p class="mt-2 text-xs text-stone-500 dark:text-stone-400" role="status">{stage}</p>
+      {/if}
+
+      {#if message.status === 'truncated'}
+        <div class="mt-3 flex flex-wrap items-center gap-3 text-xs text-stone-500 dark:text-stone-400" role="status">
+          <span>{$t('chat.unfinished')}</span>
+          {#if oncontinue}
+            <button type="button" class="btn-secondary text-xs" onclick={oncontinue}>
+              {$t('chat.continueResponse')}
+            </button>
+          {/if}
+        </div>
+      {/if}
+
       {#if !streaming && message.content}
         <div class="mt-1.5 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
           <button
@@ -157,6 +174,11 @@
               onclick={onregenerate}
             >
               <RotateCcw class="size-3.5" aria-hidden="true" />
+            </button>
+          {/if}
+          {#if oncontinue && message.status !== 'truncated'}
+            <button type="button" class="btn-secondary text-xs" onclick={oncontinue}>
+              {$t('chat.continueResponse')}
             </button>
           {/if}
         </div>

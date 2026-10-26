@@ -10,6 +10,10 @@ telemetry, and no network connection during a chat.
   with runtime dispatch: SSE2/x64, SSSE3 and newer tiers, no AVX2 requirement
 - Ternary Bonsai 2 catalogue (2B/4B/9B/27B); experimental BitNet/Falcon3
   entries stay hidden until they pass the validation gate
+- Validated Ternary Bonsai 1.7B/4B alternatives and a compact 429 MB Bonsai 2
+  2B pack, with pinned downloads and CPU compatibility measurements
+- Small Qwen 2.5 Instruct 0.5B and Qwen 3 0.6B Q4_K_M choices for basic chat
+  on older CPUs, with thinking disabled
 - English and Brazilian Portuguese UI
 
 > **Status:** working core and UI, not a public release. Engine binaries and
@@ -98,9 +102,14 @@ engine.lock.json      pinned engine version and archive hashes
 ## Models and licences
 
 The catalogue is embedded at build time. Bonsai 2 entries are validated and
-downloadable; BitNet, Falcon3 and Llama3 entries are marked experimental with a
-pending validation gate and cannot be downloaded. Model weights are never
+downloadable; BitNet, Falcon3 and Llama3 entries remain unavailable pending
+validation or after rejection. Model weights are never
 bundled in the installer.
+
+Unfinished answers are labelled and can be extended with **Continue answer**.
+The app keeps the original text and resumes in the same message. On a slow
+PC with at least 8 GB RAM, Advanced settings can also raise the per-reply
+limit; 4 GB machines keep the short default and can continue in chunks.
 
 The application is dual-licensed under MIT or Apache-2.0. The pinned engine is
 MIT-licensed; see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

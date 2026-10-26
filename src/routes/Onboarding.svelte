@@ -55,6 +55,7 @@
   const visibleModels = $derived(
     app.models
       .filter((card) => {
+        if (card.model.validation !== 'validated') return false;
         if (card.model.experimental) {
           return showMore && (settings?.include_experimental ?? false);
         }
@@ -464,7 +465,9 @@
                       {/if}
                     </div>
                     <p class="mt-1 text-xs leading-relaxed text-stone-500 dark:text-stone-400">
-                      {card.model.description}
+                      {card.model.description.startsWith('modelDescriptions.')
+                        ? $t(card.model.description)
+                        : card.model.description}
                     </p>
                     {#if reason}
                       <p class="mt-1 text-xs font-medium text-amber-700 dark:text-amber-300">{reason}</p>

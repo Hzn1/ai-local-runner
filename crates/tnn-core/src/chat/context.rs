@@ -70,7 +70,10 @@ pub fn build_context(
 
     let mut selected = Vec::new();
     for message in history.iter().rev() {
-        if message.status != crate::storage::MessageStatus::Complete {
+        if !matches!(
+            message.status,
+            crate::storage::MessageStatus::Complete | crate::storage::MessageStatus::Truncated
+        ) {
             continue;
         }
         let role = match message.role {
@@ -105,6 +108,23 @@ pub fn build_context(
 mod tests {
     use super::*;
     use crate::storage::{MessageStatus, now_millis};
+
+    #[test]
+    fn unfinished_answers_remain_in_continuation_context() {
+        let mut answer = message(MessageRole::Assistant, "The unfinished first half");
+        answer.status = MessageStatus::Truncated;
+        let history = vec![
+            message(MessageRole::User, "Explain this"),
+            answer,
+            message(MessageRole::User, "Continue"),
+        ];
+        let context = build_context("Be helpful", &history, 2048, 256).unwrap();
+        assert!(
+            context
+                .iter()
+                .any(|m| m.role == "assistant" && m.content == "The unfinished first half")
+        );
+    }
 
     fn message(role: MessageRole, content: &str) -> Message {
         Message {

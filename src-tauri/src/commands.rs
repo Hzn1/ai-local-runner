@@ -118,6 +118,18 @@ pub async fn send_message(
 }
 
 #[tauri::command]
+// The core spawns a generation task, so dispatch on Tauri's async runtime.
+pub async fn continue_response(
+    state: State<'_, AppState>,
+    conversation_id: String,
+    request_id: String,
+) -> CmdResult<SendMessageResponse> {
+    Ok(state
+        .core
+        .continue_response(&conversation_id, &request_id)?)
+}
+
+#[tauri::command]
 pub fn cancel_generation(state: State<'_, AppState>, request_id: String) -> CmdResult<()> {
     state.core.cancel_generation(&request_id);
     Ok(())
@@ -234,4 +246,111 @@ pub async fn check_for_updates(
         version: update.version.clone(),
         notes: update.body.clone(),
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::{Arc, mpsc};
+    use std::time::Duration;
+    use tnn_core::{AppCore, CoreEvent, EventSink, MessageRole, MessageStatus, ModelSource, Paths};
+
+    #[test]
+    fn continue_response_ipc_dispatches_without_a_runtime_on_the_calling_thread() {
+        assert!(tokio::runtime::Handle::try_current().is_err());
+        let dir = tempfile::tempdir().unwrap();
+        let paths = Paths::new(
+            dir.path().join("data"),
+            dir.path().join("missing-engine"),
+            dir.path().join("missing-baseline"),
+        )
+        .unwrap();
+        let (sender, receiver) = mpsc::channel();
+        let core = Arc::new(
+            AppCore::new(
+                paths,
+                EventSink::new(Arc::new(move |event| {
+                    let _ = sender.send(event);
+                })),
+                "0.1.0",
+            )
+            .unwrap(),
+        );
+        let model_path = dir.path().join("fake.gguf");
+        std::fs::write(&model_path, b"GGUF").unwrap();
+        core.db
+            .upsert_installed(&InstalledModel {
+                id: "bonsai2-2b-pq2".into(),
+                display_name: "Test".into(),
+                file_name: "fake.gguf".into(),
+                path: model_path.to_string_lossy().into_owned(),
+                sha256: "a".repeat(64),
+                size_bytes: 4,
+                installed_at: 0,
+                last_used_at: None,
+                source: ModelSource::Catalog,
+            })
+            .unwrap();
+        let conversation = core.create_conversation(None).unwrap();
+        for (role, content, status) in [
+            (MessageRole::User, "Explain", MessageStatus::Complete),
+            (
+                MessageRole::Assistant,
+                "First half",
+                MessageStatus::Truncated,
+            ),
+        ] {
+            core.db
+                .append_message(&conversation.id, role, content, None, status, None)
+                .unwrap();
+        }
+        let (_, log_guard) = tracing_appender::non_blocking(std::io::sink());
+        let app = tauri::test::mock_builder()
+            .manage(AppState {
+                core: Arc::clone(&core),
+                _log_guard: log_guard,
+            })
+            .invoke_handler(tauri::generate_handler![continue_response])
+            .build(tauri::test::mock_context(tauri::test::noop_assets()))
+            .unwrap();
+        let window = tauri::WebviewWindowBuilder::new(&app, "main", Default::default())
+            .build()
+            .unwrap();
+        let response = tauri::test::get_ipc_response(
+            &window,
+            tauri::webview::InvokeRequest {
+                cmd: "continue_response".into(),
+                callback: tauri::ipc::CallbackFn(0),
+                error: tauri::ipc::CallbackFn(1),
+                url: "tauri://localhost".parse().unwrap(),
+                body: tauri::ipc::InvokeBody::Json(serde_json::json!({
+                    "conversationId": conversation.id,
+                    "requestId": "continue-ipc",
+                })),
+                headers: Default::default(),
+                invoke_key: tauri::test::INVOKE_KEY.into(),
+            },
+        )
+        .unwrap()
+        .deserialize::<SendMessageResponse>()
+        .unwrap();
+        assert_eq!(response.request_id, "continue-ipc");
+
+        // No engine is installed: generation must report a recoverable error
+        // through events instead of panicking at tokio::spawn in the handler.
+        loop {
+            if let CoreEvent::ChatError(event) =
+                receiver.recv_timeout(Duration::from_secs(5)).unwrap()
+            {
+                assert_eq!(event.request_id, "continue-ipc");
+                assert_eq!(event.error.code, "engine_spawn_failed");
+                break;
+            }
+        }
+        let loaded = core.get_conversation(&conversation.id).unwrap();
+        assert_eq!(loaded.messages.len(), 2);
+        assert_eq!(loaded.messages[1].id, response.assistant_message_id);
+        assert_eq!(loaded.messages[1].content, "First half");
+        assert_eq!(loaded.messages[1].status, MessageStatus::Truncated);
+    }
 }

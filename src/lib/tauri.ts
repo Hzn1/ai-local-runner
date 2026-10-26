@@ -39,7 +39,8 @@ export const api = {
 
   downloadModel: (modelId: string) =>
     invoke<void>('download_model', { modelId }),
-  pauseDownload: (modelId: string) => invoke<void>('pause_download', { modelId }),
+  pauseDownload: (modelId: string) =>
+    invoke<void>('pause_download', { modelId }),
   resumeDownload: (modelId: string) =>
     invoke<void>('resume_download', { modelId }),
   cancelDownload: (modelId: string) =>
@@ -57,12 +58,17 @@ export const api = {
     invoke<SendMessageResponse>('send_message', { request }),
   cancelGeneration: (requestId: string) =>
     invoke<void>('cancel_generation', { requestId }),
+  continueResponse: (conversationId: string, requestId: string) =>
+    invoke<SendMessageResponse>('continue_response', {
+      conversationId,
+      requestId,
+    }),
   regenerate: (conversationId: string, requestId: string) =>
     invoke<SendMessageResponse>('regenerate', { conversationId, requestId }),
 
-  listConversations: () =>
-    invoke<ConversationSummary[]>('list_conversations'),
-  getConversation: (id: string) => invoke<Conversation>('get_conversation', { id }),
+  listConversations: () => invoke<ConversationSummary[]>('list_conversations'),
+  getConversation: (id: string) =>
+    invoke<Conversation>('get_conversation', { id }),
   createConversation: (modelId?: string | null) =>
     invoke<Conversation>('create_conversation', { modelId: modelId ?? null }),
   renameConversation: (id: string, title: string) =>

@@ -80,6 +80,7 @@ pub fn run() {
             commands::stop_engine,
             commands::engine_status,
             commands::send_message,
+            commands::continue_response,
             commands::cancel_generation,
             commands::regenerate,
             commands::list_conversations,

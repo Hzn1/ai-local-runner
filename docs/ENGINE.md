@@ -144,6 +144,20 @@ host do not prove execution on an SSE2-only CPU. Use QEMU or a VM for that
 claim, and a clean 4 GB Linux VM for the minimum-memory gate. Windows
 validation is deferred while Linux is the active target.
 
+To validate another catalogue entry, set `TNN_TEST_MODEL_ID` alongside the
+absolute `TNN_TEST_MODEL` path. The opt-in gate also prints a short benchmark
+using engine timings and a generated greeting for review. These tiny samples
+are compatibility measurements, not release performance gates.
+
+The real-model continuation regression uses a deliberately tiny 4-token limit
+to force truncation, then verifies that continuation keeps the same message,
+prefix and conversation history:
+
+```bash
+TNN_TEST_MODEL=/absolute/path/Ternary-Bonsai-2-2B-PQ2_0.gguf \
+  cargo test -p tnn-core --test continuation -- --ignored --nocapture
+```
+
 ## Changing the pin
 
 1. Download the new archives and compute SHA-256.

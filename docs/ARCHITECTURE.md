@@ -87,6 +87,7 @@ engine_status              delete_model               open_logs
 send_message               import_model               check_for_updates
 cancel_generation          list_conversations
 regenerate                 get_conversation
+continue_response
 create_conversation        rename_conversation
 delete_conversation        export_conversation
 ```
@@ -126,6 +127,24 @@ batched every 50 ms to keep a 2-core machine responsive.
    `interrupted`. It is not an error.
 6. `chat://done` reports usage and speed; the UI replaces the placeholder with
    the persisted message.
+
+The SSE proxy retains the engine's `finish_reason`. A `length` finish or an
+unexpected EOF saves the answer as `truncated`, which is distinct from
+`complete`. The UI preserves and renders that text and offers **Continue
+answer**. `continue_response(conversation_id, request_id)` validates both IDs
+and the latest assistant turn, then uses that message as an assistant prefill
+(`continue_final_message: true`, `add_generation_prompt: false`, `echo: false`).
+Only newly generated text is streamed and appended to the same stored message;
+no synthetic user message is persisted. Existing answers and manually stopped
+answers can also be continued. The context and output budgets still apply;
+continuation fails visibly if the existing answer no longer fits context.
+While the engine processes the existing answer, the UI shows a preparation
+message. HTTP requests can be cancelled before response headers arrive.
+Prompt processing has no automatic deadline: baseline CPUs may need many
+minutes before the first token. After the first content or reasoning token,
+a 180-second gap without further output ends with a recoverable engine error.
+This is an inactivity limit, not a limit on total response time; SSE
+keep-alives do not reset it. Stop remains available during prompt processing.
 
 ## Storage
 

@@ -50,6 +50,7 @@ async fn streams_answer_and_batches_deltas() {
     .expect("stream succeeds");
 
     assert!(!outcome.cancelled);
+    assert!(!outcome.truncated);
     assert!(outcome.content.contains("mock AI engine"));
     assert!(outcome.usage.total_tokens > 0);
     assert!(outcome.usage.completion_tokens > 0);
@@ -144,8 +145,119 @@ async fn cancellation_keeps_the_partial_answer() {
 
     canceller.await.unwrap();
     assert!(outcome.cancelled);
+    assert!(!outcome.truncated);
     assert!(!outcome.content.is_empty());
     assert!(outcome.elapsed_ms < 5_000);
+}
+
+#[tokio::test]
+async fn length_limit_preserves_every_delta_and_reports_unfinished() {
+    use wiremock::{
+        Mock, MockServer, ResponseTemplate,
+        matchers::{method, path},
+    };
+    let server = MockServer::start().await;
+    // A long final chunk must not be mistaken for an end marker or discarded
+    // when finish_reason and usage arrive together.
+    let text = "A complete paragraph. ".repeat(500);
+    let data = serde_json::json!({"choices":[{"delta":{"content":text},"finish_reason":"length"}],"usage":{"prompt_tokens":5,"completion_tokens":256,"total_tokens":261}});
+    Mock::given(method("POST"))
+        .and(path("/v1/chat/completions"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .insert_header("content-type", "text/event-stream")
+                .set_body_string(format!("data: {data}\n\ndata: [DONE]\n\n")),
+        )
+        .mount(&server)
+        .await;
+    let (sink, events) = recording_sink();
+    let outcome = stream_chat(
+        &reqwest::Client::new(),
+        &server.uri(),
+        "secret",
+        &request(),
+        "req-limit",
+        CancellationToken::new(),
+        &sink,
+    )
+    .await
+    .unwrap();
+    assert!(outcome.truncated);
+    assert_eq!(outcome.content, text);
+    let emitted: String = events
+        .lock()
+        .unwrap()
+        .iter()
+        .filter_map(|event| match event {
+            CoreEvent::ChatDelta(delta) => Some(delta.delta.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(emitted, text);
+}
+
+#[tokio::test]
+async fn premature_eof_is_not_a_complete_answer() {
+    use wiremock::{Mock, MockServer, ResponseTemplate, matchers::method};
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .insert_header("content-type", "text/event-stream")
+                .set_body_string(
+                    "data: {\"choices\":[{\"delta\":{\"content\":\"Partial answer\"}}]}\n\n",
+                ),
+        )
+        .mount(&server)
+        .await;
+    let (sink, _) = recording_sink();
+    let outcome = stream_chat(
+        &reqwest::Client::new(),
+        &server.uri(),
+        "secret",
+        &request(),
+        "req-eof",
+        CancellationToken::new(),
+        &sink,
+    )
+    .await
+    .unwrap();
+    assert!(outcome.truncated);
+    assert_eq!(outcome.content, "Partial answer");
+}
+
+#[tokio::test]
+async fn continuation_may_reach_eos_without_new_text() {
+    use wiremock::{Mock, MockServer, ResponseTemplate, matchers::method};
+    let server = MockServer::start().await;
+    Mock::given(method("POST")).respond_with(ResponseTemplate::new(200)
+        .insert_header("content-type", "text/event-stream")
+        .set_body_string("data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n"))
+        .mount(&server).await;
+    let request = ChatCompletionRequest::new(
+        vec![ChatMessage {
+            role: "assistant".into(),
+            content: "Already finished.".into(),
+        }],
+        256,
+        &Sampling::default(),
+        false,
+    );
+    let (sink, _) = recording_sink();
+    let outcome = stream_chat(
+        &reqwest::Client::new(),
+        &server.uri(),
+        "secret",
+        &request,
+        "req-eos",
+        CancellationToken::new(),
+        &sink,
+    )
+    .await
+    .unwrap();
+    assert!(!outcome.truncated);
+    assert!(outcome.content.is_empty());
+    assert_eq!(outcome.usage.completion_tokens, 0);
 }
 
 #[tokio::test]

@@ -12,6 +12,7 @@ import { app } from './app.svelte';
 class ChatStore {
   current = $state<Conversation | null>(null);
   sending = $state(false);
+  waitingForContinuation = $state(false);
   requestId = $state<string | null>(null);
   pendingAssistantId = $state<string | null>(null);
   error = $state<ErrorPayload | null>(null);
@@ -37,6 +38,7 @@ class ChatStore {
     this.requestId = null;
     this.pendingAssistantId = null;
     this.sending = false;
+    this.waitingForContinuation = false;
     this.lastStats = null;
     this.buffer = '';
     this.reasoningBuffer = '';
@@ -135,8 +137,42 @@ class ChatStore {
     }
   }
 
+  async continueResponse(): Promise<void> {
+    const message = this.lastAssistant;
+    if (
+      !this.current ||
+      this.sending ||
+      !message ||
+      !message.content.trim() ||
+      !['complete', 'truncated', 'interrupted'].includes(message.status)
+    )
+      return;
+    const previousStatus = message.status;
+    this.error = null;
+    this.lastStats = null;
+    this.buffer = '';
+    this.reasoningBuffer = '';
+    const requestId = crypto.randomUUID();
+    this.requestId = requestId;
+    this.pendingAssistantId = message.id;
+    this.sending = true;
+    this.waitingForContinuation = true;
+    message.status = 'streaming';
+    try {
+      await api.continueResponse(this.current.id, requestId);
+    } catch (error) {
+      message.status = previousStatus;
+      this.waitingForContinuation = false;
+      this.sending = false;
+      this.requestId = null;
+      this.pendingAssistantId = null;
+      this.error = normalizeError(error);
+    }
+  }
+
   handleDelta(event: ChatDelta): void {
     if (!this.requestId || event.request_id !== this.requestId) return;
+    if (event.delta) this.waitingForContinuation = false;
     const message = this.pendingAssistant();
     if (!message) {
       this.buffer += event.delta;
@@ -151,6 +187,7 @@ class ChatStore {
 
   async handleDone(event: ChatDone): Promise<void> {
     if (!this.requestId || event.request_id !== this.requestId) return;
+    this.waitingForContinuation = false;
     this.sending = false;
     this.lastStats = {
       tokensPerSec: event.tokens_per_sec,
@@ -164,6 +201,7 @@ class ChatStore {
 
   async handleCancelled(event: ChatCancelled): Promise<void> {
     if (!this.requestId || event.request_id !== this.requestId) return;
+    this.waitingForContinuation = false;
     this.sending = false;
     this.requestId = null;
     this.pendingAssistantId = null;
@@ -172,6 +210,7 @@ class ChatStore {
 
   async handleError(event: ChatErrorEvent): Promise<void> {
     if (!this.requestId || event.request_id !== this.requestId) return;
+    this.waitingForContinuation = false;
     this.sending = false;
     this.requestId = null;
     this.pendingAssistantId = null;
@@ -191,7 +230,9 @@ class ChatStore {
     await app.refreshConversations();
   }
 
-  async exportConversation(format: 'json' | 'markdown'): Promise<string | null> {
+  async exportConversation(
+    format: 'json' | 'markdown',
+  ): Promise<string | null> {
     if (!this.current) return null;
     return api.exportConversation(this.current.id, format);
   }

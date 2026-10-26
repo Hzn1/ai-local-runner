@@ -44,6 +44,17 @@ port and verifies:
 - wrong API key → `engine_spawn_failed` with recovery actions;
 - cancellation preserves a partial answer and is not an error;
 - timing/speed reporting.
+- preservation of a long last delta when `finish_reason = length` arrives;
+- premature EOF is marked unfinished, rather than silently complete.
+
+Continuation coverage includes the chat store's append/reload and failure
+paths, context retention of unfinished text, and backend persistence when an
+engine start fails. Opt-in real-model coverage in `tests/continuation.rs`
+forces a length stop and continues the same answer using assistant prefill,
+including a longer stored answer. Set `TNN_TEST_MODEL_ID` to test another
+installed catalogue model. Streaming tests also cover cancellation before HTTP
+headers arrive, prompt processing longer than the stream inactivity limit,
+and an engine that stalls after producing output while sending keep-alives.
 
 The mock engine can also be run manually:
 

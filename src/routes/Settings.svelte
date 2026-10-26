@@ -551,6 +551,7 @@
                       ? null
                       : Number(event.currentTarget.value))}
               />
+              <p class="hint mt-1">{$t('settings.maxTokensHint')}</p>
             </div>
           </div>
         </section>

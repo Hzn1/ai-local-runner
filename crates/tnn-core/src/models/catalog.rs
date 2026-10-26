@@ -214,8 +214,14 @@ impl Catalog {
             .iter()
             .filter(|model| model.is_downloadable() && !model.experimental)
             .filter(|model| hardware.total_ram_bytes >= model.min_ram_bytes)
+            .filter(|model| !hardware.minimum_mode || model.params_b <= 2.0)
             .collect();
-        candidates.sort_by(|a, b| a.params_b.total_cmp(&b.params_b));
+        candidates.sort_by(|a, b| {
+            a.id.starts_with("bonsai2-")
+                .cmp(&b.id.starts_with("bonsai2-"))
+                .then_with(|| a.params_b.total_cmp(&b.params_b))
+                .then_with(|| (a.quant == "PQ2_0").cmp(&(b.quant == "PQ2_0")))
+        });
         candidates.last().copied()
     }
 
@@ -231,7 +237,7 @@ impl Catalog {
             .collect()
     }
 
-    /// Models the UI shows by default: validated Bonsai entries.
+    /// Models the UI shows by default: validated, non-experimental entries.
     pub fn visible_models(&self) -> impl Iterator<Item = &ModelSpec> {
         self.models
             .iter()
@@ -391,11 +397,58 @@ mod tests {
     }
 
     #[test]
-    fn pending_models_are_not_downloadable() {
+    fn minimum_mode_keeps_the_small_current_generation_model() {
         let catalog = Catalog::embedded().unwrap();
-        for model in catalog.models.iter().filter(|m| m.experimental) {
+        assert_eq!(
+            catalog.recommended_id(&hardware(8, 2)),
+            Some("bonsai2-2b-pq2")
+        );
+    }
+
+    #[test]
+    fn previous_generation_does_not_displace_bonsai_two() {
+        let mut catalog = Catalog::embedded().unwrap();
+        for model in &mut catalog.models {
+            if model.id.starts_with("bonsai1-") {
+                model.validation = ValidationStatus::Validated;
+            }
+        }
+        assert_eq!(
+            catalog.recommended_id(&hardware(8, 4)),
+            Some("bonsai2-4b-pq2")
+        );
+        assert_eq!(
+            catalog.recommended_id(&hardware(16, 8)),
+            Some("bonsai2-9b-pq2")
+        );
+    }
+
+    #[test]
+    fn unvalidated_models_are_not_downloadable() {
+        let catalog = Catalog::embedded().unwrap();
+        for model in catalog
+            .models
+            .iter()
+            .filter(|m| m.validation != ValidationStatus::Validated)
+        {
             assert!(!model.is_downloadable(), "{} must stay hidden", model.id);
         }
+    }
+
+    #[test]
+    fn experimental_models_never_become_default_recommendations() {
+        let mut catalog = Catalog::embedded().unwrap();
+        let model = catalog
+            .models
+            .iter_mut()
+            .find(|m| m.id == "bitnet-2b4t")
+            .unwrap();
+        model.validation = ValidationStatus::Validated;
+        model.params_b = 100.0;
+        assert_ne!(
+            catalog.recommended_id(&hardware(64, 8)),
+            Some("bitnet-2b4t")
+        );
     }
 
     #[test]

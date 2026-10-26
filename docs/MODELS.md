@@ -14,17 +14,46 @@ These entries are downloadable and recommended by hardware tier.
 | `bonsai2-9b-pq2` | Bonsai 2 · 9B | PQ2_0 | 2.42 GB | 12 GB | Smart |
 | `bonsai2-27b-pq2` | Bonsai 2 · 27B | PQ2_0 | 7.21 GB | 24 GB | Advanced |
 | `bonsai2-27b-ptq1` | Bonsai 2 · 27B (smaller download) | PTQ1_0 | 5.95 GB | 24 GB | Alternative 27B quant |
+| `bonsai2-2b-ptq1` | Bonsai 2 · 2B · PTQ1_0 | PTQ1_0 | 429 MB | 4 GB | Same weights, smaller download; PQ2_0 preferred for speed |
+| `bonsai1-1-7b-pq2` | Ternary Bonsai · 1.7B | PQ2_0 | 463 MB | 4 GB | Previous-generation alternative |
+| `bonsai1-4b-pq2` | Ternary Bonsai · 4B | PQ2_0 | 1.07 GB | 8 GB | Previous-generation alternative; slow on old CPUs |
+| `qwen2-5-0-5b-instruct-q4-k-m` | Qwen 2.5 Instruct · 0.5B | Q4_K_M | 491 MB | 4 GB | Small instruction-tuned chat model; official Qwen GGUF |
+| `qwen3-0-6b-q4-k-m` | Qwen 3 · 0.6B | Q4_K_M | 397 MB | 4 GB | Unsloth conversion; thinking disabled |
 
 All entries carry a pinned Hugging Face revision, exact SHA-256 and licence URL.
-The recommendation picks the largest validated model that fits available RAM;
-`minimum_mode` (4 GB or ≤2 physical cores) hard-caps context at 2K, threads at
-the physical core count and answers at 256 tokens.
+Recommendations prefer the current Bonsai 2 family and PQ2_0 packing, then
+choose the largest model that fits RAM. Minimum mode selects a model of at
+most 2B parameters, keeps context at 2K and threads within physical cores,
+and defaults to 256-token replies. PCs with at least 8 GiB RAM can explicitly
+raise the reply limit in Advanced settings, up to half the effective context;
+minimum-memory machines retain the 256-token cap. **Continue answer** extends
+an unfinished reply without increasing the per-request limit or discarding
+the existing text.
 
-## Experimental entries (hidden, not downloadable)
+The small Qwen choices use a 2K default context and 256-token replies to limit
+prompt processing on older CPUs. They appear in the regular Models list and
+use the existing download, verification and engine paths. Qwen 2.5 comes from
+the publisher's [GGUF repository](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF).
+Qwen 3 uses [Unsloth's Q4_K_M conversion](https://huggingface.co/unsloth/Qwen3-0.6B-GGUF)
+to keep its download smaller than the publisher's Q8_0 file. Both are
+Apache-2.0; the Qwen 3 licence link points to the pinned upstream licence.
+Thinking remains disabled in the engine and chat template. These are options
+for basic chat, with lower capacity than larger models; adding them does not
+change the existing Bonsai recommendations. Runtime measurements are in
+[benchmarks.md](benchmarks.md).
+
+The new alternatives have pinned publisher revisions, exact LFS SHA-256/size,
+Apache-2.0 licences, and native/SSE2/SSSE3 inference measurements recorded in
+[benchmarks.md](benchmarks.md). They are choices, not claims of higher quality
+than Bonsai 2. The older Bonsai 8B file was researched but not added: the
+current Bonsai 2 9B already covers that RAM tier, and the older file has not
+passed this app's runtime gate.
+
+## Unavailable experimental entries (hidden, not downloadable)
 
 | ID | Reason |
 |---|---|
-| `bitnet-2b4t` | Pending conversion/validation. i2_s is slow on non-AVX2 CPUs. |
+| `bitnet-2b4t` | The pinned Synapticode TQ2_0 conversion loaded, but produced repetitive output during native validation. Rejected for this catalogue. |
 | `bitnet-0-7b` | Pending; no pinned upstream GGUF URL yet. |
 | `falcon3-1b-158bit` | Pending; upstream i2_s only, conversion required. |
 | `falcon3-3b-158bit` | Pending; conversion required. |
@@ -33,6 +62,12 @@ the physical core count and answers at 256 tokens.
 | `llama3-8b-158` | Pending; Llama 3 licence acceptance required. |
 
 `validation = pending` and/or `url = null` makes an entry non-downloadable.
+`validation = rejected` also blocks downloads. The BitNet record now points
+at an actual llama.cpp-compatible TQ2_0 conversion, not the incompatible
+official i2_s file, but it stays rejected until it passes quality validation.
+See the [conversion model card](https://huggingface.co/Synapticode/bitnet-b1.58-2B-4T-tq2_0-gguf)
+and [validation measurements](benchmarks.md). This is a decision about this
+specific conversion and pinned runtime, not about all BitNet models.
 `settings.include_experimental` only reveals them in the UI after the gate is
 passed; it does not bypass the download block. The main Bonsai catalogue is
 never blocked by experimental work.
@@ -127,6 +162,9 @@ managed directory after import is not supported.
 ## Licences and attribution
 
 - Bonsai 2 entries: Apache-2.0.
+- Ternary Bonsai 1.7B and 4B entries: Apache-2.0, from publisher repositories.
+- Qwen 2.5 Instruct 0.5B and Qwen 3 0.6B: Apache-2.0; Qwen 3 uses an
+  attributed Unsloth GGUF conversion.
 - The UI shows the model name, licence and source link before download.
 - Apache-2.0/MIT do not require a checkbox; Llama 3 does.
 - Model weights are not bundled and are not mirrored without a licence check.

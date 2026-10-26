@@ -34,11 +34,12 @@ fn stage_variant(source: &Path, destination: &Path, variant: &str) {
 
 #[tokio::test]
 #[ignore = "requires TNN_TEST_MODEL and the pinned engine resources; see docs/ENGINE.md"]
-async fn pinned_bonsai_runs_on_native_sse2_and_ssse3() {
+async fn pinned_model_runs_on_native_sse2_and_ssse3() {
     let model = PathBuf::from(std::env::var_os("TNN_TEST_MODEL").expect("set TNN_TEST_MODEL"));
     let model = model.canonicalize().unwrap();
     let catalog = Catalog::embedded().unwrap();
-    let spec = catalog.get("bonsai2-2b-pq2").unwrap();
+    let model_id = std::env::var("TNN_TEST_MODEL_ID").unwrap_or_else(|_| "bonsai2-2b-pq2".into());
+    let spec = catalog.get(&model_id).unwrap();
     verify::verify_sha256(&model, spec.sha256.as_deref().unwrap()).unwrap();
     gguf::validate_gguf(&model, spec.architecture.as_deref()).unwrap();
     assert_eq!(std::fs::metadata(&model).unwrap().len(), spec.size_bytes);
@@ -94,7 +95,7 @@ async fn pinned_bonsai_runs_on_native_sse2_and_ssse3() {
         let manager = EngineManager::new(paths.clone(), EventSink::noop()).unwrap();
         let result = tokio::time::timeout(Duration::from_secs(300), async {
             manager.ensure(&launch).await?;
-            manager
+            let outcome = manager
                 .chat(
                     &launch,
                     vec![ChatMessage {
@@ -104,20 +105,26 @@ async fn pinned_bonsai_runs_on_native_sse2_and_ssse3() {
                     "phase-0",
                     CancellationToken::new(),
                 )
-                .await
+                .await?;
+            let benchmark = manager.benchmark(&launch).await?;
+            Ok::<_, tnn_core::AppError>((outcome, benchmark))
         })
         .await;
         // Always terminate/reap even when the request fails or times out.
         manager.stop().await;
         assert!(!paths.pid_file.exists(), "PID file survived shutdown");
         assert_eq!(manager.status().await.state, EngineState::Stopped);
-        let outcome = result
+        let (outcome, benchmark) = result
             .expect("engine gate timed out")
             .expect("engine gate failed");
         assert!(!outcome.cancelled);
         assert!(!selftest::looks_degenerate(&outcome.content));
         assert!(outcome.reasoning.is_empty(), "thinking must stay disabled");
         assert!(outcome.usage.completion_tokens > 0);
+        println!(
+            "VALIDATION {} {variant}: prompt={:.2} t/s, generation={:.2} t/s; sample={:?}",
+            spec.id, benchmark.prompt_tps, benchmark.generation_tps, outcome.content
+        );
         println!("PASS: {variant}, non-thinking streaming, clean shutdown");
     }
 }

@@ -87,3 +87,45 @@ A fresh Linux desktop launch under Xvfb rendered the onboarding screen, with
 real Tauri IPC and isolated temporary app data. A separate WebKitGTK preview
 check rendered the desktop-only message without JavaScript startup errors.
 This smoke check does not replace packaged-app or 4 GB VM acceptance tests.
+
+## Catalogue expansion and answer continuation (2026-10-26)
+
+Added three downloadable alternatives after pinning their revision, SHA-256,
+size and Apache-2.0 licence and running native/SSE2/SSSE3 inference checks:
+Ternary Bonsai 1.7B, Ternary Bonsai 4B, and compact Bonsai 2 2B PTQ1_0.
+Bonsai 2 PQ2_0 remains preferred for recommendations. Minimum mode now
+recommends at most a 2B model. Measurements, limitations and source cards are
+recorded in [benchmarks.md](benchmarks.md) and [MODELS.md](MODELS.md).
+
+The Synapticode BitNet 2B4T TQ2_0 candidate loaded but produced repetitive
+native output, so it was rejected and its remaining validation was stopped.
+It remains unavailable for download. Unvalidated and rejected entries are
+hidden in both onboarding and model management. The experimental visibility
+toggle is now respected by model management, rather than just its label.
+
+The reported answer cutoffs were confirmed from metadata: two existing
+answers had exactly 256 completion tokens. The streaming parser now retains
+the finish reason, records length-limited/premature-EOF replies as truncated,
+and offers **Continue answer**. Continuation uses the pinned engine's
+assistant-prefill API without echoing or replacing the existing text. Old
+answers and manually stopped answers can also be continued. Stopped/unfinished
+answers are rendered as Markdown instead of becoming invisible.
+
+Slow 2-core machines still default to short replies. With at least 8 GiB RAM,
+an explicit Advanced answer-length override is honoured up to half the
+effective context; minimum-memory machines keep the 256-token cap. Context,
+physical-core, loopback and non-thinking safeguards remain in place.
+
+Validation: 24 frontend tests, zero Svelte diagnostics, frontend build,
+121 Rust unit/type-export tests plus 7 streaming integration tests,
+bindings regeneration, Rust formatting, Linux desktop check and debug build.
+The opt-in real-model continuation regression also passed with a forced
+4-token limit: same assistant message ID, retained prefix, appended text and
+only the original two conversation messages. A short-word repetition test
+was added to the engine's garbage-output heuristic.
+
+A Linux desktop smoke check with an isolated temporary database verified the
+saved truncated answer, its visible Markdown text, unfinished notice and
+Continue button. Model management rendered the three new choices with enabled
+Download buttons. The test used seeded fixture messages and did not invoke
+inference or modify the user's app data.

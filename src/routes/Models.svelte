@@ -39,7 +39,8 @@
     app.models
       .filter((card) => {
         if (card.installed) return false;
-        if (card.model.experimental) return showMore;
+        if (card.model.validation !== 'validated') return false;
+        if (card.model.experimental) return showMore && Boolean(app.settings?.include_experimental);
         if (card.model.params_b >= 20) return showMore;
         return true;
       })

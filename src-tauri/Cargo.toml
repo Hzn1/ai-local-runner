@@ -35,6 +35,10 @@ tracing-appender = { workspace = true }
 tracing-subscriber = { workspace = true }
 uuid = { workspace = true }
 
+[dev-dependencies]
+tauri = { version = "~2.11.6", features = ["test"] }
+tempfile = "3"
+
 [features]
 # This feature is used for production builds where `devUrl` is not used.
 custom-protocol = ["tauri/custom-protocol"]

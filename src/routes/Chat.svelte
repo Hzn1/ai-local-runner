@@ -269,9 +269,15 @@
             <MessageBubble
               {message}
               streaming={message.status === 'streaming'}
-              stage={showThinking ? stage : ''}
+              stage={chat.waitingForContinuation && message.id === chat.pendingAssistantId
+                ? $t('chat.preparingContinuation')
+                : showThinking ? stage : ''}
               showReasoning={app.settings?.show_reasoning ?? false}
               onregenerate={() => chat.regenerate()}
+              oncontinue={!chat.sending && message.id === chat.messages[chat.messages.length - 1]?.id
+                && ['complete', 'truncated', 'interrupted'].includes(message.status)
+                ? () => { void chat.continueResponse(); }
+                : undefined}
               oncopy={() => toast.success($t('toast.copied'))}
             />
           {/each}

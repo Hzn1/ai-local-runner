@@ -115,7 +115,9 @@
         {/if}
       </div>
       <p class="mt-1 text-xs leading-relaxed text-stone-500 dark:text-stone-400">
-        {card.model.description}
+        {card.model.description.startsWith('modelDescriptions.')
+          ? $t(card.model.description)
+          : card.model.description}
       </p>
     </div>
     <span class="badge shrink-0 bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300">

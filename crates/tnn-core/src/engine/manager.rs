@@ -104,12 +104,20 @@ impl EngineLaunch {
             )
             .min(context_size / 2);
 
-        // Minimum mode is a hard guarantee, not a suggestion: 4 GB / 2-core
-        // machines get 2K context, 2 threads and short answers.
+        // Keep memory and CPU limits on low-end machines. A slow CPU alone
+        // should not silently discard an explicit answer-length preference
+        // when the machine has enough RAM.
         if hardware.minimum_mode {
             context_size = context_size.min(2048);
             threads = threads.min(hardware.physical_cores.max(1));
-            max_tokens = max_tokens.min(256);
+            let output_cap = if hardware.total_ram_bytes >= 8 * 1024_u64.pow(3)
+                && settings.max_tokens.is_some()
+            {
+                context_size / 2
+            } else {
+                256
+            };
+            max_tokens = max_tokens.min(output_cap);
         }
 
         let (batch_size, ubatch_size) = hardware.default_batch();
@@ -812,6 +820,21 @@ mod tests {
         let launch = EngineLaunch::create(installed(), None, &hardware, &settings);
         assert!(!hardware.minimum_mode);
         assert_eq!(launch.threads, 4);
+    }
+
+    #[test]
+    fn two_core_machine_with_enough_ram_can_request_a_longer_answer() {
+        let hardware = hardware(8, 2);
+        let settings = Settings {
+            max_tokens: Some(512),
+            ..Settings::default()
+        };
+        let launch = EngineLaunch::create(installed(), None, &hardware, &settings);
+        assert_eq!(launch.max_tokens, 512);
+        assert_eq!(launch.context_size, 2048);
+        assert_eq!(launch.threads, 2);
+        let automatic = EngineLaunch::create(installed(), None, &hardware, &Settings::default());
+        assert_eq!(automatic.max_tokens, 256);
     }
 
     #[test]

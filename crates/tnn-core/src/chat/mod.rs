@@ -45,6 +45,11 @@ pub struct ChatCompletionRequest {
     pub repeat_last_n: u32,
     pub chat_template_kwargs: ChatTemplateKwargs,
     pub cache_prompt: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub continue_final_message: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub add_generation_prompt: Option<bool>,
+    pub echo: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -64,6 +69,9 @@ impl ChatCompletionRequest {
         sampling: &Sampling,
         enable_thinking: bool,
     ) -> Self {
+        let continuing = messages
+            .last()
+            .is_some_and(|message| message.role == "assistant");
         Self {
             model: "local".to_string(),
             messages: messages.into_iter().map(Into::into).collect(),
@@ -81,6 +89,32 @@ impl ChatCompletionRequest {
             repeat_last_n: sampling.repeat_last_n,
             chat_template_kwargs: ChatTemplateKwargs { enable_thinking },
             cache_prompt: true,
+            continue_final_message: continuing.then_some(true),
+            add_generation_prompt: continuing.then_some(false),
+            echo: false,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn continuation_uses_assistant_prefill_without_echo_or_a_new_generation_prompt() {
+        let request = ChatCompletionRequest::new(
+            vec![ChatMessage {
+                role: "assistant".into(),
+                content: "An unfinished answer".into(),
+            }],
+            256,
+            &Sampling::default(),
+            false,
+        );
+        let value = serde_json::to_value(&request).unwrap();
+        assert_eq!(value["continue_final_message"], true);
+        assert_eq!(value["add_generation_prompt"], false);
+        assert_eq!(value["echo"], false);
+        assert_eq!(value["chat_template_kwargs"]["enable_thinking"], false);
     }
 }

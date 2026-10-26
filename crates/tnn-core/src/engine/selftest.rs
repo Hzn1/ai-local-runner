@@ -3,7 +3,7 @@
 //! This exists to catch the bitnet.cpp class of failure: a process that starts
 //! and answers, but emits nonsense on CPUs without AVX2.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::time::Duration;
 
 use reqwest::Client;
@@ -74,6 +74,24 @@ pub fn looks_degenerate(text: &str) -> bool {
         return true;
     }
 
+    // Repeated words can look alphabetic and diverse at character level but
+    // still be a broken answer (for example `Hello Sal - Sal - Sal - Sal`).
+    let words: Vec<String> = trimmed
+        .split(|ch: char| !ch.is_alphabetic())
+        .filter(|word| !word.is_empty())
+        .map(str::to_lowercase)
+        .collect();
+    if words.len() >= 5 {
+        let mut counts = HashMap::new();
+        for word in &words {
+            let count = counts.entry(word).or_insert(0_usize);
+            *count += 1;
+            if word.chars().count() >= 2 && *count >= 4 && *count * 2 > words.len() {
+                return true;
+            }
+        }
+    }
+
     let mut run = 1_usize;
     let mut previous = None;
     for ch in trimmed.chars() {
@@ -126,5 +144,7 @@ mod tests {
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         ));
         assert!(looks_degenerate("..."));
+        assert!(looks_degenerate("Hello, Sal - Sal - Sal - Sal"));
+        assert!(!looks_degenerate("Hello! How can I help you today?"));
     }
 }

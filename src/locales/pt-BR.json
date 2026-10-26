@@ -154,7 +154,10 @@
     "exportJson": "Exportar como JSON",
     "exported": "Salvo em {path}",
     "modelBadge": "Modelo: {model}",
-    "contextWarning": "Esta conversa está ficando longa. Comece uma nova se as respostas ficarem lentas."
+    "contextWarning": "Esta conversa está ficando longa. Comece uma nova se as respostas ficarem lentas.",
+    "unfinished": "Esta resposta parou antes de terminar. Você pode continuá-la.",
+    "continueResponse": "Continuar resposta",
+    "preparingContinuation": "Preparando para continuar a resposta… Respostas longas podem levar alguns minutos para processar. Você pode parar a qualquer momento."
   },
   "models": {
     "title": "Modelos",
@@ -182,7 +185,7 @@
     "tooSmallRam": "Este PC tem {ram}. Este modelo precisa de cerca de {needed}.",
     "tooSmallDisk": "Espaço em disco insuficiente. Libere {needed}.",
     "experimental": "Experimental",
-    "experimentalBody": "Modelos experimentais são exibidos para testes. Podem ser lentos ou dar respostas ruins.",
+    "experimentalBody": "Modelos experimentais podem ser muito mais lentos ou menos confiáveis. Eles nunca são recomendados por padrão.",
     "showExperimental": "Mostrar modelos experimentais",
     "hideExperimental": "Ocultar modelos experimentais",
     "license": "Licença",
@@ -268,7 +271,8 @@
     "saved": "Configurações salvas",
     "context2048": "2K — mais rápido, memória curta",
     "context4096": "4K — equilibrado",
-    "context8192": "8K — mais memória, mais lento"
+    "context8192": "8K — mais memória, mais lento",
+    "maxTokensHint": "Respostas curtas são o padrão em PCs mais lentos. Com pelo menos 8 GB de RAM, você pode aumentar este limite. Use Continuar resposta quando uma resposta pausar."
   },
   "hardware": {
     "ram": "Memória",
@@ -361,5 +365,12 @@
     "updateFound": "A versão {version} está disponível",
     "noUpdates": "Você está atualizado",
     "error": "Algo deu errado"
+  },
+  "modelDescriptions": {
+    "bonsai1": "Uma alternativa ternária da geração anterior. A família Bonsai 2 continua sendo a recomendada.",
+    "bonsai2Compact": "Os mesmos pesos do Bonsai 2 2B em um download menor. Prefira PQ2_0 para maior velocidade na CPU.",
+    "bitnet2b": "Microsoft BitNet experimental em uma conversão compatível TQ2_0. Muito lento em CPUs antigas; recomenda-se hardware avançado.",
+    "qwen25Small": "Um modelo pequeno ajustado para instruções, para conversas básicas em CPUs antigas. Menos capaz que modelos maiores.",
+    "qwen3Small": "Um modelo compacto Qwen 3 com raciocínio desativado para respostas mais rápidas. Conversão Q4_K_M da Unsloth."
   }
 }

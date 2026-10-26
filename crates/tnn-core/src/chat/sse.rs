@@ -81,6 +81,7 @@ pub struct ParsedChunk {
     pub reasoning: Option<String>,
     pub usage: Option<Usage>,
     pub done: bool,
+    pub finish_reason: Option<String>,
 }
 
 /// Parse one `data:` payload. Returns `Ok(None)` for keep-alive or unknown
@@ -111,13 +112,11 @@ pub fn parse_chunk(data: &str) -> Result<Option<ParsedChunk>, serde_json::Error>
                     .reasoning
                     .or_else(|| content_of(message.get("reasoning_content")));
             }
-            if choice
+            parsed.finish_reason = choice
                 .get("finish_reason")
                 .and_then(Value::as_str)
-                .is_some_and(|reason| !reason.is_empty())
-            {
-                parsed.done = false;
-            }
+                .filter(|reason| !reason.is_empty())
+                .map(str::to_owned);
         }
     }
 

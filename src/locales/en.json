@@ -154,7 +154,10 @@
     "exportJson": "Export as JSON",
     "exported": "Saved to {path}",
     "modelBadge": "Model: {model}",
-    "contextWarning": "This chat is getting long. Start a new chat if answers slow down."
+    "contextWarning": "This chat is getting long. Start a new chat if answers slow down.",
+    "unfinished": "This answer stopped before it finished. You can continue it.",
+    "continueResponse": "Continue answer",
+    "preparingContinuation": "Preparing to continue the answer… Longer answers can take a few minutes to process. You can stop at any time."
   },
   "models": {
     "title": "Models",
@@ -182,7 +185,7 @@
     "tooSmallRam": "This PC has {ram}. This model needs about {needed}.",
     "tooSmallDisk": "Not enough disk space. Free {needed}.",
     "experimental": "Experimental",
-    "experimentalBody": "Experimental models are shown for testing. They may be slow or produce poor answers.",
+    "experimentalBody": "Experimental models may be much slower or less reliable. They are never recommended by default.",
     "showExperimental": "Show experimental models",
     "hideExperimental": "Hide experimental models",
     "license": "License",
@@ -268,7 +271,8 @@
     "saved": "Settings saved",
     "context2048": "2K — fastest, short memory",
     "context4096": "4K — balanced",
-    "context8192": "8K — more memory, slower"
+    "context8192": "8K — more memory, slower",
+    "maxTokensHint": "Short replies are the default on slower PCs. With at least 8 GB RAM you can raise this limit. Use Continue answer when a reply pauses."
   },
   "hardware": {
     "ram": "Memory",
@@ -361,5 +365,12 @@
     "updateFound": "Version {version} is available",
     "noUpdates": "You are up to date",
     "error": "Something went wrong"
+  },
+  "modelDescriptions": {
+    "bonsai1": "A previous-generation ternary alternative. Bonsai 2 remains the recommended family.",
+    "bonsai2Compact": "The same Bonsai 2 2B weights in a smaller download. PQ2_0 is preferred for CPU speed.",
+    "bitnet2b": "Experimental Microsoft BitNet in a compatible TQ2_0 conversion. Very slow on older CPUs; advanced hardware recommended.",
+    "qwen25Small": "A small instruction-tuned model for basic chats on older CPUs. Less capable than larger models.",
+    "qwen3Small": "A compact Qwen 3 model with thinking disabled for quicker replies. Q4_K_M conversion by Unsloth."
   }
 }

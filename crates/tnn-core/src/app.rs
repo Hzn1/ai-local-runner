@@ -345,7 +345,12 @@ impl AppCore {
                 detail: "message is too long".into(),
             });
         }
-        self.begin_generation(conversation_id, Some(content.to_string()), true, request_id)
+        self.begin_generation(
+            conversation_id,
+            Some(content.to_string()),
+            false,
+            request_id,
+        )
     }
 
     pub fn regenerate(
@@ -364,14 +369,56 @@ impl AppCore {
         self.begin_generation(conversation_id, None, false, request_id)
     }
 
+    pub fn continue_response(
+        &self,
+        conversation_id: &str,
+        request_id: &str,
+    ) -> Result<SendMessageResponse> {
+        crate::models::verify::validate_model_id(conversation_id)?;
+        crate::models::verify::validate_model_id(request_id)?;
+        self.begin_generation(conversation_id, None, true, request_id)
+    }
+
     fn begin_generation(
         &self,
         conversation_id: &str,
         content: Option<String>,
-        append_user: bool,
+        continuing: bool,
         request_id: &str,
     ) -> Result<SendMessageResponse> {
         let conversation = self.db.get_conversation(conversation_id)?;
+        if conversation
+            .messages
+            .iter()
+            .any(|message| message.status == MessageStatus::Streaming)
+        {
+            return Err(AppError::InvalidInput {
+                detail: "a response is already being generated".into(),
+            });
+        }
+        let previous = if continuing {
+            Some(
+                conversation
+                    .messages
+                    .last()
+                    .filter(|message| {
+                        message.role == MessageRole::Assistant
+                            && !message.content.trim().is_empty()
+                            && matches!(
+                                message.status,
+                                MessageStatus::Complete
+                                    | MessageStatus::Truncated
+                                    | MessageStatus::Interrupted
+                            )
+                    })
+                    .cloned()
+                    .ok_or_else(|| AppError::InvalidInput {
+                        detail: "only the latest answer can be continued".into(),
+                    })?,
+            )
+        } else {
+            None
+        };
         let installed = self
             .db
             .installed_model(&conversation.model_id)?
@@ -383,8 +430,7 @@ impl AppCore {
         let spec = self.catalog.get(&conversation.model_id).cloned();
         let launch = EngineLaunch::create(installed, spec.as_ref(), &self.hardware(), &settings);
 
-        let user_message = if append_user {
-            let content = content.unwrap_or_default();
+        let user_message = if let Some(content) = content {
             self.db.append_message(
                 conversation_id,
                 MessageRole::User,
@@ -403,21 +449,46 @@ impl AppCore {
 
         // Reload so the new user turn is part of the context.
         let conversation = self.db.get_conversation(conversation_id)?;
+        let mut history = conversation.messages.clone();
+        if continuing {
+            if let Some(last) = history.last_mut() {
+                last.status = MessageStatus::Truncated;
+            }
+            // The trailing assistant message becomes a prefill. The engine
+            // resumes its text directly, without a synthetic user turn.
+        }
         let context = build_context(
             &settings.system_prompt,
-            &conversation.messages,
+            &history,
             launch.context_size,
             launch.max_tokens,
         )?;
+        if continuing && !context.iter().any(|message| message.role == "assistant") {
+            return Err(AppError::ContextOverflow);
+        }
 
-        let assistant_message = self.db.append_message(
-            conversation_id,
-            MessageRole::Assistant,
-            "",
-            None,
-            MessageStatus::Streaming,
-            None,
-        )?;
+        let assistant_message = if let Some(previous) = previous {
+            self.db.update_message(
+                &previous.id,
+                &previous.content,
+                previous.reasoning.as_deref(),
+                MessageStatus::Streaming,
+                previous.token_count,
+            )?;
+            previous
+        } else {
+            self.db.append_message(
+                conversation_id,
+                MessageRole::Assistant,
+                "",
+                None,
+                MessageStatus::Streaming,
+                None,
+            )?
+        };
+        let prefix = assistant_message.content.clone();
+        let reasoning_prefix = assistant_message.reasoning.clone().unwrap_or_default();
+        let previous_tokens = assistant_message.token_count.unwrap_or(0);
 
         let cancel = CancellationToken::new();
         {
@@ -438,8 +509,13 @@ impl AppCore {
 
         tokio::spawn(async move {
             if cancel.is_cancelled() {
-                let _ =
-                    db.update_message(&assistant_id, "", None, MessageStatus::Interrupted, Some(0));
+                let _ = db.update_message(
+                    &assistant_id,
+                    &prefix,
+                    Some(&reasoning_prefix),
+                    MessageStatus::Interrupted,
+                    Some(previous_tokens),
+                );
                 events.emit(CoreEvent::ChatCancelled(ChatCancelled {
                     request_id: request_id_owned.clone(),
                 }));
@@ -456,14 +532,14 @@ impl AppCore {
             match outcome {
                 Ok(outcome) if outcome.cancelled => {
                     let reasoning = show_reasoning
-                        .then(|| outcome.reasoning.clone())
+                        .then(|| format!("{reasoning_prefix}{}", outcome.reasoning))
                         .filter(|reasoning| !reasoning.is_empty());
                     let _ = db.update_message(
                         &assistant_id,
-                        &outcome.content,
+                        &format!("{prefix}{}", outcome.content),
                         reasoning.as_deref(),
                         MessageStatus::Interrupted,
-                        Some(outcome.usage.completion_tokens),
+                        Some(previous_tokens.saturating_add(outcome.usage.completion_tokens)),
                     );
                     events.emit(CoreEvent::ChatCancelled(ChatCancelled {
                         request_id: request_id_owned.clone(),
@@ -471,14 +547,18 @@ impl AppCore {
                 }
                 Ok(outcome) => {
                     let reasoning = show_reasoning
-                        .then(|| outcome.reasoning.clone())
+                        .then(|| format!("{reasoning_prefix}{}", outcome.reasoning))
                         .filter(|reasoning| !reasoning.is_empty());
                     let _ = db.update_message(
                         &assistant_id,
-                        &outcome.content,
+                        &format!("{prefix}{}", outcome.content),
                         reasoning.as_deref(),
-                        MessageStatus::Complete,
-                        Some(outcome.usage.completion_tokens),
+                        if outcome.truncated {
+                            MessageStatus::Truncated
+                        } else {
+                            MessageStatus::Complete
+                        },
+                        Some(previous_tokens.saturating_add(outcome.usage.completion_tokens)),
                     );
                     events.emit(CoreEvent::ChatDone(ChatDone {
                         request_id: request_id_owned.clone(),
@@ -490,8 +570,8 @@ impl AppCore {
                 Err(error) if error.code() == "canceled" => {
                     let _ = db.update_message(
                         &assistant_id,
-                        "",
-                        None,
+                        &prefix,
+                        Some(&reasoning_prefix),
                         MessageStatus::Interrupted,
                         None,
                     );
@@ -501,7 +581,17 @@ impl AppCore {
                 }
                 Err(error) => {
                     diagnostics.record_error(&error);
-                    let _ = db.update_message(&assistant_id, "", None, MessageStatus::Error, None);
+                    let _ = db.update_message(
+                        &assistant_id,
+                        &prefix,
+                        Some(&reasoning_prefix),
+                        if continuing {
+                            MessageStatus::Truncated
+                        } else {
+                            MessageStatus::Error
+                        },
+                        Some(previous_tokens),
+                    );
                     events.emit(CoreEvent::ChatError(ChatErrorEvent {
                         request_id: request_id_owned.clone(),
                         error: error.payload(),
@@ -816,5 +906,74 @@ mod tests {
             }
             other => panic!("unexpected event: {other:?}"),
         }
+    }
+
+    #[tokio::test]
+    async fn failed_continuation_keeps_the_original_answer_and_message_id() {
+        let dir = tempfile::tempdir().unwrap();
+        let core = core(dir.path());
+        let path = dir.path().join("model.gguf");
+        std::fs::write(&path, b"GGUF").unwrap();
+        core.db
+            .upsert_installed(&InstalledModel {
+                id: "bonsai2-2b-pq2".into(),
+                display_name: "Test".into(),
+                file_name: "model.gguf".into(),
+                path: path.to_string_lossy().into_owned(),
+                sha256: "a".repeat(64),
+                size_bytes: 4,
+                installed_at: 0,
+                last_used_at: None,
+                source: ModelSource::Catalog,
+            })
+            .unwrap();
+        let conversation = core
+            .create_conversation(Some("bonsai2-2b-pq2".into()))
+            .unwrap();
+        core.db
+            .append_message(
+                &conversation.id,
+                MessageRole::User,
+                "Explain",
+                None,
+                MessageStatus::Complete,
+                Some(2),
+            )
+            .unwrap();
+        let answer = core
+            .db
+            .append_message(
+                &conversation.id,
+                MessageRole::Assistant,
+                "Original first half",
+                None,
+                MessageStatus::Truncated,
+                Some(256),
+            )
+            .unwrap();
+        let response = core
+            .continue_response(&conversation.id, "continuation")
+            .unwrap();
+        assert_eq!(response.assistant_message_id, answer.id);
+        tokio::time::timeout(std::time::Duration::from_secs(5), async {
+            loop {
+                let loaded = core.db.get_conversation(&conversation.id).unwrap();
+                if loaded.messages.last().unwrap().status != MessageStatus::Streaming {
+                    break;
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .unwrap();
+        let loaded = core.db.get_conversation(&conversation.id).unwrap();
+        assert_eq!(
+            loaded.messages.len(),
+            2,
+            "no synthetic user message is persisted"
+        );
+        assert_eq!(loaded.messages[1].content, answer.content);
+        assert_eq!(loaded.messages[1].status, MessageStatus::Truncated);
+        assert_eq!(loaded.messages[1].token_count, Some(256));
     }
 }
