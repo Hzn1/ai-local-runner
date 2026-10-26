@@ -1,4 +1,4 @@
-//! Opt-in Phase 0 gate. Never downloads weights or requires them in CI.
+//! Opt-in Phase 0 gate. Never downloads weights or requires them in the default suite.
 
 #![cfg(target_os = "linux")]
 

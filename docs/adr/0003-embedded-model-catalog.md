@@ -21,4 +21,4 @@ manifest in v1.
 - Experimental entries can ship hidden (`validation: pending`, `url: null`) and
   be enabled only after a later release passes the gate.
 - The catalogue must be validated at build/test time; a malformed entry fails
-  CI rather than silently disappearing.
+  the local checks rather than silently disappearing.

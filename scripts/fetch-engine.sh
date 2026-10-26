@@ -2,7 +2,7 @@
 # Fetch and prune the pinned PrismML llama.cpp CPU build.
 #
 # Values are duplicated in engine.lock.json (the machine-readable record used
-# by CI and docs). Update both together when changing the engine pin.
+# by local tooling and docs). Update both together when changing the engine pin.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

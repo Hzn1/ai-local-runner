@@ -921,17 +921,15 @@ tnn-local-ai-runner/
 │  ├─ prune-engine.sh
 │  ├─ bench-engine.sh
 │  ├─ verify-no-avx2.sh
-│  ├─ convert-experimental-model.sh
-│  └─ release.sh
-├─ docs/
-│  ├─ ARCHITECTURE.md
-│  ├─ ENGINE.md
-│  ├─ MODELS.md
-│  ├─ UX.md
-│  ├─ TESTING.md
-│  ├─ RELEASE.md
-│  └─ adr/
-└─ .github/workflows/{ci,engine,nightly-legacy-cpu,release}.yml
+│  └─ convert-experimental-model.sh
+└─ docs/
+   ├─ ARCHITECTURE.md
+   ├─ ENGINE.md
+   ├─ MODELS.md
+   ├─ UX.md
+   ├─ TESTING.md
+   ├─ RELEASE.md
+   └─ adr/
 ```
 
 ---
@@ -968,7 +966,7 @@ Total estimate: **4–6 weeks** for one experienced developer. An AI agent can m
 
 - Create Cargo workspace and Tauri v2 app with Svelte 5 + TypeScript + Vite + Tailwind.
 - Add Tauri plugins, capabilities, CSP, single-instance, window-state.
-- Add CI: `cargo fmt`, `cargo clippy -D warnings`, `cargo test`, `npm run check`, `npm run lint`, `npm run test`, production build.
+- Run local checks: `cargo fmt`, `cargo clippy -D warnings`, `cargo test`, `npm run check`, `npm run test`, production build.
 - Build app shell with routes, theme, i18n scaffold, error boundary, logging.
 - Build `mock-engine` with `/health`, `/props`, `/tokenize`, and streaming `/v1/chat/completions`.
 - Add `AGENTS.md` with commands, conventions, and guardrails.
@@ -977,7 +975,7 @@ Total estimate: **4–6 weeks** for one experienced developer. An AI agent can m
 
 - App launches on Windows and Linux.
 - Mock chat streams end-to-end.
-- CI is green.
+- Local checks pass.
 - `ts-rs` type export works and drift is checked.
 
 ### Phase 2 — Core domain and storage (3–4 days)
@@ -1158,7 +1156,7 @@ qemu-x86_64 -cpu qemu64 -L /usr/x86_64-linux-gnu ./resources/engine/llama-server
 qemu-system-x86_64 -m 4096 -smp 2 -cpu SandyBridge ...
 ```
 
-If QEMU is not available in CI, use a self-hosted legacy CPU runner and document the manual gate.
+If QEMU is not available locally, use a legacy CPU machine and document the manual gate.
 
 ### 10.5 Performance gates
 
@@ -1188,14 +1186,12 @@ If a gate fails, fix the default (context, batch, threads, max tokens) before sh
 - `cargo audit`, `cargo deny`, `npm audit`.
 - Tauri capability review: no broad FS/shell permissions.
 
-### 10.7 CI workflows
+### 10.7 Local validation
 
-- `ci.yml`: Linux + Windows; fmt, clippy, tests, frontend check/lint/test/build.
-- `engine.yml`: fetch pinned engine archive, verify SHA-256, smoke test, upload artifacts.
-- `nightly-legacy-cpu.yml`: QEMU SSE2/SSSE3 e2e with 2B; optional self-hosted Ivy Bridge runner.
-- `release.yml`: tag → build installers → sign Windows → publish → updater manifest → checksums.
-
-Cache: Cargo, npm, engine archive, and the 2B model for nightly jobs.
+- Run formatting, clippy, Rust tests, frontend checks, tests and builds locally.
+- Fetch and verify the pinned engine locally before running compatibility checks.
+- Run QEMU SSE2/SSSE3 checks or test on a legacy CPU machine manually.
+- Build installers locally with `npm run tauri build`; see `docs/RELEASE.md`.
 
 ---
 

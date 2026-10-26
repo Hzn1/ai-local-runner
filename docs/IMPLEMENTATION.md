@@ -34,15 +34,14 @@ advance through the remaining gates.
 ## Existing implementation
 
 The workspace already contains core/storage, engine supervision, downloads,
-the Svelte interface, diagnostics and packaging scripts. Their presence is
+the Svelte interface, diagnostics and local packaging configuration. Their presence is
 separate from acceptance. Required remaining automated and manual coverage is
 tracked in [TESTING.md](TESTING.md); release prerequisites and checks are in
 [RELEASE.md](RELEASE.md).
 
-Linux build configuration targets `.deb` and AppImage. Engine/release CI runs
-on Linux, and Rust CI installs the GTK/WebKit dependencies needed by the
-workspace's desktop crate. The release collector resolves Cargo's actual
-workspace target directory rather than assuming `src-tauri/target`.
+Linux build configuration targets `.deb` and AppImage. Checks and packaging
+run locally; install the GTK/WebKit dependencies needed by the workspace's
+desktop crate. There are no automated build or publishing workflows.
 
 The effective thread limit now respects physical cores for every hardware
 tier, including Advanced overrides. The benchmark script uses physical cores
@@ -61,7 +60,7 @@ machine override as well as the existing minimum-mode clamps.
 - `cargo check -p tnn-local-ai`: passed.
 - `TNN_TEST_MODEL=… cargo test -p tnn-core --test real_engine -- --ignored --nocapture`:
   passed across all three backends, with loopback permission.
-- Modified shell scripts pass `bash -n`; workflow YAML parses successfully.
+- Modified shell scripts pass `bash -n`.
 - A fake benchmark executable confirmed that the script selects 2 physical
   cores on this host and rejects zero/invalid values and a 4-thread override.
   These fixture numbers are not performance measurements.

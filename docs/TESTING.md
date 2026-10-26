@@ -105,7 +105,7 @@ qemu-system-x86_64 -m 4096 -smp 2 -cpu SandyBridge \
 ```
 
 Install the app, download 2B, complete a short chat, and record the result.
-If QEMU is not available, use a self-hosted legacy runner and document it.
+If QEMU is not available, test on a legacy CPU machine and document it.
 
 ### Performance gates
 

@@ -13,9 +13,8 @@ machine and commit the appended result with the hardware details.
 - pp64: 4.75 t/s
 - tg32: 2.98 t/s
 
-This is the recorded spike result, not a measurement taken by this
-repository's CI. Re-run it on the reference machine before claiming a
-performance gate.
+This is the recorded spike result. Re-run it on the reference machine before
+claiming a performance gate.
 
 ## Gates
 

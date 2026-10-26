@@ -136,7 +136,7 @@ isolated x64/SSE2 directory, and an isolated SSSE3 directory. Each run performs
 the startup self-test, streams a short answer with thinking disabled, and
 checks shutdown/PID cleanup. There is no fallback between directories, so a
 failed backend cannot be concealed by a successful fallback. It requires
-SSSE3 on the host and never downloads weights itself; ordinary CI skips it.
+SSSE3 on the host and never downloads weights itself; the default test suite skips it.
 
 The output heuristic rejects obvious garbage; human review of coherence and
 a timed benchmark remain separate gates. Forced backends on an Ivy Bridge

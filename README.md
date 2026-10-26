@@ -68,7 +68,7 @@ app” message. It is useful for styling, not for functional testing.
 | `scripts/fetch-engine.sh` | Download and prune the pinned engine |
 | `scripts/verify-no-avx2.sh` | Start the engine under an SSE2-only QEMU CPU |
 | `scripts/bench-engine.sh` | Measure prompt/generation speed |
-| `scripts/release.sh` | Test, build and sign release artifacts |
+| `npm run tauri build` | Build desktop installers locally |
 
 See [docs/TESTING.md](docs/TESTING.md) for the full test matrix and
 [docs/RELEASE.md](docs/RELEASE.md) for signing and packaging.
@@ -80,7 +80,7 @@ crates/tnn-core/      domain, storage, downloads, engine supervisor, chat
 crates/mock-engine/   deterministic fake llama-server for tests
 src-tauri/            Tauri wiring, IPC commands, capabilities, resources
 src/                  Svelte 5 UI, stores, types generated from Rust
-scripts/              engine fetch/prune, benchmark, compatibility, release
+scripts/              engine fetch/prune, benchmark, compatibility
 docs/                 architecture, engine, models, UX, testing, release, ADRs
 engine.lock.json      pinned engine version and archive hashes
 ```

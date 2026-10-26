@@ -7,7 +7,6 @@
 !/src-tauri/resources/engine/.gitkeep
 /src-tauri/resources/engine-baseline/*
 !/src-tauri/resources/engine-baseline/.gitkeep
-/release-artifacts/
 .DS_Store
 *.log
 *.part

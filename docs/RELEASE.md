@@ -1,8 +1,8 @@
 # Release
 
 Current release scope is Linux x64 only: `.deb` and AppImage. Windows
-instructions below are retained for future work. The release and engine CI
-matrices currently build Linux only; `scripts/release.sh` requires Linux.
+instructions below are retained for future work. Build and validate installers
+locally; the repository has no automated publishing or deployment.
 
 ## Prerequisites
 
@@ -10,7 +10,7 @@ matrices currently build Linux only; `scripts/release.sh` requires Linux.
   `src-tauri/resources/engine-baseline` (`scripts/fetch-engine.sh`/`.ps1`).
 - A real updater signing keypair. The public key is in
   `src-tauri/tauri.conf.json` (`plugins.updater.pubkey`); the private key must
-  never enter the repository or CI logs.
+  never enter the repository or logs.
 - A real update endpoint. The checked-in endpoint
   (`updates.tnn.example.invalid`) is a deliberate placeholder and must be
   replaced with the signed-manifest URL before shipping.
@@ -19,7 +19,7 @@ matrices currently build Linux only; `scripts/release.sh` requires Linux.
 
 ### Updater key
 
-Generate once and store the private key in a password manager/CI secret:
+Generate once and store the private key in a password manager:
 
 ```bash
 npx tauri signer generate -w ~/.tauri/tnn-local-ai.key
@@ -27,7 +27,7 @@ npx tauri signer generate -w ~/.tauri/tnn-local-ai.key
 cat ~/.tauri/tnn-local-ai.key.pub
 ```
 
-Paste the public key into `plugins.updater.pubkey`. For CI, set:
+Paste the public key into `plugins.updater.pubkey`. For a local build, set:
 
 ```text
 TAURI_SIGNING_PRIVATE_KEY           path to key or literal key
@@ -44,13 +44,12 @@ TAURI_SIGNING_PRIVATE_KEY_PASSWORD  key password
 ```bash
 TAURI_SIGNING_PRIVATE_KEY=~/.tauri/tnn-local-ai.key \
 TAURI_SIGNING_PRIVATE_KEY_PASSWORD='…' \
-./scripts/release.sh --base-url https://github.com/<owner>/<repo>/releases/download/v0.1.0
+npm run tauri build
 ```
 
-The script runs `npm ci`, Svelte checks, Vitest, `cargo fmt --check`,
-`cargo test --workspace`, then `tauri build`. It collects installers and
-updater signatures into `release-artifacts/`, writes `SHA256SUMS`, and, with
-`--base-url`, writes `latest-<platform>.json`.
+Run the checks in [TESTING.md](TESTING.md) before building. Tauri writes
+installers and updater signatures under `release/bundle/` in Cargo's target
+directory (normally `target/release/bundle/`). Nothing is uploaded or published.
 
 Targets from `tauri.conf.json`:
 
@@ -82,8 +81,8 @@ The updater expects a signed JSON document served at the configured endpoint:
 }
 ```
 
-The release workflow merges `latest-linux-x86_64.json` into `latest.json` and
-publishes it with the signed artifacts. `.deb` users update through the
+There is no manifest generation or publishing automation. Configuring a hosted
+updater is optional and separate from local packaging. `.deb` users update through the
 package manager or install a newer download; the Linux in-app updater targets
 AppImage. Windows manifests are deferred.
 
@@ -97,12 +96,12 @@ Rules:
 
 ## Checksums
 
-`SHA256SUMS-<platform>` covers every artifact. Publish it next to the release
-and include the hashes in release notes. Verify before uploading:
+For installers you choose to share, generate and verify checksums locally:
 
 ```bash
-cd release-artifacts
-sha256sum -c SHA256SUMS-linux
+cd target/release/bundle
+sha256sum deb/*.deb appimage/*.AppImage > SHA256SUMS
+sha256sum -c SHA256SUMS
 ```
 
 ## Release checklist

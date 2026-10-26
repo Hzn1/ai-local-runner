@@ -75,7 +75,7 @@ boundary and `0n` only for local defaults.
 - Download and engine code must remain cancellation-safe and must clean up
   partial files/PID files on failure.
 - Tests: pure logic near the module, HTTP/SSE integration in
-  `crates/tnn-core/tests/`. Do not require real model files in CI.
+  `crates/tnn-core/tests/`. Do not require real model files in the default test suite.
 
 ## Security checklist for changes
 
