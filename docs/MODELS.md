@@ -5,25 +5,23 @@ There is no remote manifest in v1: a compromised CDN cannot silently add a model
 
 ## Validated catalogue
 
-These entries are downloadable and recommended by hardware tier.
+These entries are downloadable when their RAM requirements fit the machine.
+Automatic recommendations select among the validated Qwen models by RAM and
+minimum-mode limits.
 
 | ID | Display name | Quant | Download | Minimum RAM | Notes |
 |---|---|---:|---:|---:|---|
-| `bonsai2-2b-pq2` | Bonsai 2 · 2B | PQ2_0 | 517 MB | 4 GB | Default on minimum mode |
-| `bonsai2-4b-pq2` | Bonsai 2 · 4B | PQ2_0 | 1.15 GB | 8 GB | Balanced |
-| `bonsai2-9b-pq2` | Bonsai 2 · 9B | PQ2_0 | 2.42 GB | 12 GB | Smart |
-| `bonsai2-27b-pq2` | Bonsai 2 · 27B | PQ2_0 | 7.21 GB | 24 GB | Advanced |
-| `bonsai2-27b-ptq1` | Bonsai 2 · 27B (smaller download) | PTQ1_0 | 5.95 GB | 24 GB | Alternative 27B quant |
-| `bonsai2-2b-ptq1` | Bonsai 2 · 2B · PTQ1_0 | PTQ1_0 | 429 MB | 4 GB | Same weights, smaller download; PQ2_0 preferred for speed |
-| `bonsai1-1-7b-pq2` | Ternary Bonsai · 1.7B | PQ2_0 | 463 MB | 4 GB | Previous-generation alternative |
-| `bonsai1-4b-pq2` | Ternary Bonsai · 4B | PQ2_0 | 1.07 GB | 8 GB | Previous-generation alternative; slow on old CPUs |
 | `qwen2-5-0-5b-instruct-q4-k-m` | Qwen 2.5 Instruct · 0.5B | Q4_K_M | 491 MB | 4 GB | Small instruction-tuned chat model; official Qwen GGUF |
 | `qwen3-0-6b-q4-k-m` | Qwen 3 · 0.6B | Q4_K_M | 397 MB | 4 GB | Unsloth conversion; thinking disabled |
+| `qwen2-5-1-5b-instruct-q4-k-m` | Qwen 2.5 Instruct · 1.5B | Q4_K_M | 1.12 GB | 4 GB | Official Qwen GGUF; Apache-2.0 |
+| `qwen2-5-7b-instruct-q4-k-m` | Qwen 2.5 Instruct · 7B | Q4_K_M | 4.68 GB | 8 GB | Bartowski single-file conversion; 16 GB RAM recommended |
 
 All entries carry a pinned Hugging Face revision, exact SHA-256 and licence URL.
-Recommendations prefer the current Bonsai 2 family and PQ2_0 packing, then
-choose the largest model that fits RAM. Minimum mode selects a model of at
-most 2B parameters, keeps context at 2K and threads within physical cores,
+Recommendations prefer models whose recommended RAM fits the machine, then
+choose the largest eligible model. Qwen 2.5 Instruct 1.5B is the default on
+supported machines below 16 GB RAM; 7B is recommended with at least 16 GB RAM
+and more than two physical cores. Minimum mode selects a model of at most
+2B parameters, keeps context at 2K and threads within physical cores,
 and defaults to 256-token replies. PCs with at least 8 GiB RAM can explicitly
 raise the reply limit in Advanced settings, up to half the effective context;
 minimum-memory machines retain the 256-token cap. **Continue answer** extends
@@ -38,16 +36,20 @@ Qwen 3 uses [Unsloth's Q4_K_M conversion](https://huggingface.co/unsloth/Qwen3-0
 to keep its download smaller than the publisher's Q8_0 file. Both are
 Apache-2.0; the Qwen 3 licence link points to the pinned upstream licence.
 Thinking remains disabled in the engine and chat template. These are options
-for basic chat, with lower capacity than larger models; adding them does not
-change the existing Bonsai recommendations. Runtime measurements are in
+for basic chat, with lower capacity than larger models. Runtime measurements are in
 [benchmarks.md](benchmarks.md).
 
-The new alternatives have pinned publisher revisions, exact LFS SHA-256/size,
-Apache-2.0 licences, and native/SSE2/SSSE3 inference measurements recorded in
-[benchmarks.md](benchmarks.md). They are choices, not claims of higher quality
-than Bonsai 2. The older Bonsai 8B file was researched but not added: the
-current Bonsai 2 9B already covers that RAM tier, and the older file has not
-passed this app's runtime gate.
+The larger Qwen choices are **Qwen 2.5 Instruct** in 1.5B and 7B sizes, with
+Q4_K_M quantization. They retain a 2K default context, 256-token replies and
+disabled thinking. The 1.5B file comes from Qwen's official GGUF repository.
+The 7B uses
+[Bartowski's conversion](https://huggingface.co/bartowski/Qwen2.5-7B-Instruct-GGUF)
+because Qwen's official Q4_K_M download is split across two files and the app
+installs one GGUF per model. Allow 16 GB RAM for 7B for more headroom; larger
+models can be very slow on the reference 2-core CPU.
+
+The 1.5B and 7B models use Apache-2.0. Model weights are
+downloaded from their source and are never bundled with the application.
 
 ## Unavailable experimental entries (hidden, not downloadable)
 
@@ -69,7 +71,7 @@ See the [conversion model card](https://huggingface.co/Synapticode/bitnet-b1.58-
 and [validation measurements](benchmarks.md). This is a decision about this
 specific conversion and pinned runtime, not about all BitNet models.
 `settings.include_experimental` only reveals them in the UI after the gate is
-passed; it does not bypass the download block. The main Bonsai catalogue is
+passed; it does not bypass the download block. The main Qwen catalogue is
 never blocked by experimental work.
 
 ### Validation gate
@@ -92,23 +94,23 @@ licence confirmation.
 
 ```json
 {
-  "id": "bonsai2-2b-pq2",
-  "display_name": "Bonsai 2 · 2B",
+  "id": "qwen2-5-1-5b-instruct-q4-k-m",
+  "display_name": "Qwen 2.5 Instruct · 1.5B",
   "tier": "fast",
-  "family": "bonsai2",
-  "params_b": 2.0,
-  "quant": "PQ2_0",
-  "file_name": "Ternary-Bonsai-2-2B-PQ2_0.gguf",
-  "url": "https://huggingface.co/.../resolve/<revision>/<file>",
-  "sha256": "<64 hex chars>",
-  "size_bytes": 517312992,
+  "family": "Qwen 2.5",
+  "params_b": 1.54,
+  "quant": "Q4_K_M",
+  "file_name": "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+  "url": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/91cad51170dc346986eccefdc2dd33a9da36ead9/qwen2.5-1.5b-instruct-q4_k_m.gguf",
+  "sha256": "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e",
+  "size_bytes": 1117320736,
   "license": "Apache-2.0",
-  "license_url": "https://huggingface.co/prism-ml/Ternary-Bonsai-2-2B-gguf",
-  "model_card_url": "https://huggingface.co/prism-ml/Ternary-Bonsai-2-2B-gguf",
-  "revision": "<40 hex chars>",
+  "license_url": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/blob/91cad51170dc346986eccefdc2dd33a9da36ead9/LICENSE",
+  "model_card_url": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/blob/91cad51170dc346986eccefdc2dd33a9da36ead9/README.md",
+  "revision": "91cad51170dc346986eccefdc2dd33a9da36ead9",
   "min_ram_bytes": 4294967296,
-  "recommended_ram_bytes": 8589934592,
-  "min_disk_bytes": 1073741824,
+  "recommended_ram_bytes": 4294967296,
+  "min_disk_bytes": 1654191648,
   "context_default": 2048,
   "context_max": 32768,
   "max_tokens_default": 256,
@@ -117,14 +119,14 @@ licence confirmation.
     "top_p": 0.8,
     "top_k": 20,
     "min_p": 0.0,
-    "presence_penalty": 1.5,
-    "repeat_penalty": 1.0,
+    "presence_penalty": 0.0,
+    "repeat_penalty": 1.05,
     "repeat_last_n": 64
   },
   "enable_thinking": false,
   "engine_min_tier": "x64",
-  "architecture": "bonsai",
-  "description": "...",
+  "architecture": "qwen2",
+  "description": "modelDescriptions.qwen25Instruct",
   "badge": null,
   "experimental": false,
   "validation": "validated",
@@ -161,10 +163,10 @@ managed directory after import is not supported.
 
 ## Licences and attribution
 
-- Bonsai 2 entries: Apache-2.0.
-- Ternary Bonsai 1.7B and 4B entries: Apache-2.0, from publisher repositories.
 - Qwen 2.5 Instruct 0.5B and Qwen 3 0.6B: Apache-2.0; Qwen 3 uses an
   attributed Unsloth GGUF conversion.
+- Qwen 2.5 Instruct 1.5B and 7B: Apache-2.0; 7B uses an attributed
+  Bartowski conversion.
 - The UI shows the model name, licence and source link before download.
 - Apache-2.0/MIT do not require a checkbox; Llama 3 does.
 - Model weights are not bundled and are not mirrored without a licence check.

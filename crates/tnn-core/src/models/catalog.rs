@@ -203,11 +203,9 @@ impl Catalog {
         self.models.iter().find(|model| model.id == id)
     }
 
-    /// Pick the largest validated model that meets this machine's minimum RAM.
-    ///
-    /// 4 GB machines therefore get the 2B model, 8 GB machines the 4B model,
-    /// and 16 GB machines the 9B model. The 27B entry needs a machine well
-    /// above the recommended range.
+    /// Prefer models with recommended RAM headroom, then the largest that fits.
+    /// Minimum mode stays at or below 2B parameters, including on a two-core
+    /// machine with enough RAM for a larger model.
     pub fn recommended(&self, hardware: &HardwareProfile) -> Option<&ModelSpec> {
         let mut candidates: Vec<&ModelSpec> = self
             .models
@@ -217,10 +215,9 @@ impl Catalog {
             .filter(|model| !hardware.minimum_mode || model.params_b <= 2.0)
             .collect();
         candidates.sort_by(|a, b| {
-            a.id.starts_with("bonsai2-")
-                .cmp(&b.id.starts_with("bonsai2-"))
+            (hardware.total_ram_bytes >= a.recommended_ram_bytes)
+                .cmp(&(hardware.total_ram_bytes >= b.recommended_ram_bytes))
                 .then_with(|| a.params_b.total_cmp(&b.params_b))
-                .then_with(|| (a.quant == "PQ2_0").cmp(&(b.quant == "PQ2_0")))
         });
         candidates.last().copied()
     }
@@ -368,58 +365,45 @@ mod tests {
     fn embedded_catalog_is_valid() {
         let catalog = Catalog::embedded().unwrap();
         assert!(catalog.models.len() >= 4);
-        assert!(catalog.get("bonsai2-2b-pq2").is_some());
+        let visible: Vec<_> = catalog.visible_models().collect();
+        assert_eq!(visible.len(), 4);
+        assert!(visible.iter().all(|model| model.family.starts_with("Qwen")));
     }
 
     #[test]
-    fn four_gb_recommends_two_b() {
+    fn four_gb_recommends_qwen_one_point_five_b() {
         let catalog = Catalog::embedded().unwrap();
         let hw = HardwareProfile::synthetic_minimum();
-        assert_eq!(catalog.recommended_id(&hw), Some("bonsai2-2b-pq2"));
+        assert_eq!(
+            catalog.recommended_id(&hw),
+            Some("qwen2-5-1-5b-instruct-q4-k-m")
+        );
     }
 
     #[test]
-    fn eight_gb_recommends_four_b() {
+    fn eight_gb_prefers_headroom_over_seven_b_minimum_ram() {
         let catalog = Catalog::embedded().unwrap();
         assert_eq!(
             catalog.recommended_id(&hardware(8, 4)),
-            Some("bonsai2-4b-pq2")
+            Some("qwen2-5-1-5b-instruct-q4-k-m")
         );
     }
 
     #[test]
-    fn sixteen_gb_recommends_nine_b() {
+    fn sixteen_gb_recommends_qwen_seven_b() {
         let catalog = Catalog::embedded().unwrap();
         assert_eq!(
             catalog.recommended_id(&hardware(16, 8)),
-            Some("bonsai2-9b-pq2")
+            Some("qwen2-5-7b-instruct-q4-k-m")
         );
     }
 
     #[test]
-    fn minimum_mode_keeps_the_small_current_generation_model() {
+    fn minimum_mode_keeps_qwen_small_even_with_sixteen_gb() {
         let catalog = Catalog::embedded().unwrap();
         assert_eq!(
-            catalog.recommended_id(&hardware(8, 2)),
-            Some("bonsai2-2b-pq2")
-        );
-    }
-
-    #[test]
-    fn previous_generation_does_not_displace_bonsai_two() {
-        let mut catalog = Catalog::embedded().unwrap();
-        for model in &mut catalog.models {
-            if model.id.starts_with("bonsai1-") {
-                model.validation = ValidationStatus::Validated;
-            }
-        }
-        assert_eq!(
-            catalog.recommended_id(&hardware(8, 4)),
-            Some("bonsai2-4b-pq2")
-        );
-        assert_eq!(
-            catalog.recommended_id(&hardware(16, 8)),
-            Some("bonsai2-9b-pq2")
+            catalog.recommended_id(&hardware(16, 2)),
+            Some("qwen2-5-1-5b-instruct-q4-k-m")
         );
     }
 
@@ -456,12 +440,43 @@ mod tests {
         let catalog = Catalog::embedded().unwrap();
         let hw = HardwareProfile::synthetic_minimum();
         let cards = catalog.cards(&hw, &HashSet::new());
-        let nine = cards
+        let seven = cards
             .iter()
-            .find(|c| c.model.id == "bonsai2-9b-pq2")
+            .find(|c| c.model.id == "qwen2-5-7b-instruct-q4-k-m")
             .unwrap();
-        assert!(!nine.compatible);
-        assert_eq!(nine.unavailable_reason.as_deref(), Some("needs_more_ram"));
+        assert!(!seven.compatible);
+        assert_eq!(seven.unavailable_reason.as_deref(), Some("needs_more_ram"));
+    }
+
+    #[test]
+    fn larger_qwen_models_respect_ram_limits_and_recommendations() {
+        let catalog = Catalog::embedded().unwrap();
+        for (ram, cores, expected, recommended) in [
+            (4, 2, [true, false], "qwen2-5-1-5b-instruct-q4-k-m"),
+            (6, 4, [true, false], "qwen2-5-1-5b-instruct-q4-k-m"),
+            (8, 4, [true, true], "qwen2-5-1-5b-instruct-q4-k-m"),
+            (16, 8, [true, true], "qwen2-5-7b-instruct-q4-k-m"),
+        ] {
+            let hw = hardware(ram, cores);
+            let cards = catalog.cards(&hw, &HashSet::new());
+            for (id, compatible) in ["qwen2-5-1-5b-instruct-q4-k-m", "qwen2-5-7b-instruct-q4-k-m"]
+                .into_iter()
+                .zip(expected)
+            {
+                let card = cards.iter().find(|card| card.model.id == id).unwrap();
+                assert_eq!(card.compatible, compatible, "{id} on {ram} GiB");
+                assert_eq!(
+                    card.unavailable_reason.as_deref(),
+                    if compatible {
+                        None
+                    } else {
+                        Some("needs_more_ram")
+                    },
+                    "{id} on {ram} GiB"
+                );
+            }
+            assert_eq!(catalog.recommended_id(&hw), Some(recommended));
+        }
     }
 
     #[test]

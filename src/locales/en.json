@@ -367,10 +367,10 @@
     "error": "Something went wrong"
   },
   "modelDescriptions": {
-    "bonsai1": "A previous-generation ternary alternative. Bonsai 2 remains the recommended family.",
-    "bonsai2Compact": "The same Bonsai 2 2B weights in a smaller download. PQ2_0 is preferred for CPU speed.",
     "bitnet2b": "Experimental Microsoft BitNet in a compatible TQ2_0 conversion. Very slow on older CPUs; advanced hardware recommended.",
     "qwen25Small": "A small instruction-tuned model for basic chats on older CPUs. Less capable than larger models.",
-    "qwen3Small": "A compact Qwen 3 model with thinking disabled for quicker replies. Q4_K_M conversion by Unsloth."
+    "qwen3Small": "A compact Qwen 3 model with thinking disabled for quicker replies. Q4_K_M conversion by Unsloth.",
+    "qwen25Instruct": "An instruction-tuned Qwen 2.5 model for local chat. Uses more memory than the 0.5B option; replies may be slow on older CPUs.",
+    "qwen25Large": "A larger Qwen 2.5 chat model in Bartowski’s Q4_K_M conversion. At least 8 GB RAM; 16 GB recommended. Very slow on older CPUs."
   }
 }

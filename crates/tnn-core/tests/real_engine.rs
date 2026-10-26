@@ -38,7 +38,8 @@ async fn pinned_model_runs_on_native_sse2_and_ssse3() {
     let model = PathBuf::from(std::env::var_os("TNN_TEST_MODEL").expect("set TNN_TEST_MODEL"));
     let model = model.canonicalize().unwrap();
     let catalog = Catalog::embedded().unwrap();
-    let model_id = std::env::var("TNN_TEST_MODEL_ID").unwrap_or_else(|_| "bonsai2-2b-pq2".into());
+    let model_id = std::env::var("TNN_TEST_MODEL_ID")
+        .unwrap_or_else(|_| "qwen2-5-1-5b-instruct-q4-k-m".into());
     let spec = catalog.get(&model_id).unwrap();
     verify::verify_sha256(&model, spec.sha256.as_deref().unwrap()).unwrap();
     gguf::validate_gguf(&model, spec.architecture.as_deref()).unwrap();
@@ -93,7 +94,9 @@ async fn pinned_model_runs_on_native_sse2_and_ssse3() {
             variant.to_string()
         };
         let manager = EngineManager::new(paths.clone(), EventSink::noop()).unwrap();
-        let result = tokio::time::timeout(Duration::from_secs(300), async {
+        // Allow startup, streaming and the benchmark to each complete on a
+        // large Q4 model using a slow baseline backend.
+        let result = tokio::time::timeout(Duration::from_secs(900), async {
             manager.ensure(&launch).await?;
             let outcome = manager
                 .chat(

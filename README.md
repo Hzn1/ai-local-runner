@@ -8,12 +8,9 @@ telemetry, and no network connection during a chat.
 - Svelte 5 + TypeScript frontend, Rust core, SQLite storage
 - Pinned [PrismML llama.cpp](https://github.com/PrismML-Eng/llama.cpp) CPU build
   with runtime dispatch: SSE2/x64, SSSE3 and newer tiers, no AVX2 requirement
-- Ternary Bonsai 2 catalogue (2B/4B/9B/27B); experimental BitNet/Falcon3
-  entries stay hidden until they pass the validation gate
-- Validated Ternary Bonsai 1.7B/4B alternatives and a compact 429 MB Bonsai 2
-  2B pack, with pinned downloads and CPU compatibility measurements
 - Small Qwen 2.5 Instruct 0.5B and Qwen 3 0.6B Q4_K_M choices for basic chat
   on older CPUs, with thinking disabled
+- Qwen 2.5 Instruct 1.5B and 7B Q4_K_M choices for larger local chats
 - English and Brazilian Portuguese UI
 
 > **Status:** working core and UI, not a public release. Engine binaries and
@@ -101,7 +98,7 @@ engine.lock.json      pinned engine version and archive hashes
 
 ## Models and licences
 
-The catalogue is embedded at build time. Bonsai 2 entries are validated and
+The catalogue is embedded at build time. Qwen entries are validated and
 downloadable; BitNet, Falcon3 and Llama3 entries remain unavailable pending
 validation or after rejection. Model weights are never
 bundled in the installer.

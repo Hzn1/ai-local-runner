@@ -26,7 +26,10 @@ pub async fn run_selftest(client: &Client, base_url: &str, api_key: &str) -> Res
         .post(format!("{base_url}/v1/chat/completions"))
         .bearer_auth(api_key)
         .json(&body)
-        .timeout(Duration::from_secs(90))
+        // Larger Q4 models can need several minutes for the first prompt on
+        // SSE2-only CPUs. Keep startup bounded without rejecting a healthy
+        // engine just because its first completion is slow.
+        .timeout(Duration::from_secs(300))
         .send()
         .await
         .map_err(|error| AppError::EngineCrash {

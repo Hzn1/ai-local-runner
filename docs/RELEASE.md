@@ -111,8 +111,8 @@ sha256sum -c SHA256SUMS
 - [ ] `docs/benchmarks.md` updated on the reference machine.
 - [ ] No secrets in the diff (`git grep -iE 'api[_-]?key|private key|password'`).
 - [ ] Clean install on Linux 4 GB/2 cores (`.deb` and AppImage).
-- [ ] 2B download, pause, resume, checksum, chat, stop, restart.
-- [ ] 4B on 8 GB; 9B on 16 GB.
+- [ ] Qwen 1.5B download, pause, resume, checksum, chat, stop, restart.
+- [ ] Qwen 1.5B on 8 GB; Qwen 7B on 16 GB.
 - [ ] No network during chat (firewall or packet capture).
 - [ ] No orphan `llama-server` after quit or crash.
 - [ ] Engine self-test fallback works.

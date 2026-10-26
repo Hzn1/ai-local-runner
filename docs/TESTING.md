@@ -80,10 +80,10 @@ MOCK_ENGINE_BEHAVIOR=slow cargo run -p mock-engine -- --port 8080
 | Scenario | Windows 10 | Linux |
 |---|---|---|
 | Clean install, 4 GB / 2 cores | required | required |
-| 2B download, pause, resume, app restart | required | required |
+| Qwen 1.5B download, pause, resume, app restart | required | required |
 | Chat, stop, regenerate, export | required | required |
-| 4B on 8 GB | required | required |
-| 9B on 16 GB | recommended | recommended |
+| Qwen 1.5B on 8 GB | required | required |
+| Qwen 7B on 16 GB | recommended | recommended |
 | No AVX2 (Ivy Bridge or VM) | required | required |
 | No network during chat (firewall/packet capture) | required | required |
 | No orphan process after quit/crash | required | required |
@@ -104,13 +104,14 @@ qemu-system-x86_64 -m 4096 -smp 2 -cpu SandyBridge \
   -drive file=ubuntu-24.04.qcow2,format=qcow2
 ```
 
-Install the app, download 2B, complete a short chat, and record the result.
+Install the app, download Qwen 1.5B, complete a short chat, and record the result.
 If QEMU is not available, test on a legacy CPU machine and document it.
 
 ### Performance gates
 
-See `docs/benchmarks.md`. The reference baseline is 2.98 tok/s generation and
-4.75 tok/s prompt for 2B on an i3-3217U with 2 threads.
+See `docs/benchmarks.md` for Qwen compatibility measurements. Controlled
+performance acceptance targets for the Qwen catalogue still need validation
+on the reference machines; short compatibility samples do not establish them.
 
 ## Security tests
 

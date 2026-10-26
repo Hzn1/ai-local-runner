@@ -4,7 +4,12 @@ Measurements use the pinned engine and the catalogue's exact model files.
 Run `scripts/bench-engine.sh --model <file> --threads <n>` on the target
 machine and commit the appended result with the hardware details.
 
-## Reference baseline (from the feasibility spike)
+The active catalogue contains Qwen models only. The retired-model measurements
+and targets below are historical evidence, not current recommendations or
+Qwen acceptance criteria. Current Qwen measurements are recorded later in
+this document; controlled Qwen performance targets remain pending.
+
+## Historical baseline (retired Bonsai catalogue)
 
 - Machine: Intel i3-3217U, 2C/4T, 1.8 GHz, 9.6 GB RAM, no AVX2, Linux x64
 - Engine: PrismML `prism-b10826-c9c34bc`
@@ -16,7 +21,7 @@ machine and commit the appended result with the hardware details.
 This is the recorded spike result. Re-run it on the reference machine before
 claiming a performance gate.
 
-## Gates
+## Historical performance targets (retired catalogue)
 
 | Scenario | Target |
 |---|---:|
@@ -29,11 +34,11 @@ claiming a performance gate.
 | Cold start | < 3 s |
 | Model load, 2B on SSD | < 10 s |
 
-## Catalogue compatibility measurements — 2026-10-26
+## Historical Bonsai compatibility measurements — 2026-10-26
 
 Host: Intel i3-3217U, 2 physical cores / 4 logical CPUs, approximately 9.6 GiB
 RAM, Linux x64, no AVX2. Engine: `prism-b10826-c9c34bc`. Threads: 2; context:
-2048; thinking disabled. Files and revisions are pinned in the catalogue.
+2048; thinking disabled. These models have since been removed from the catalogue.
 
 These are tiny `EngineManager::benchmark` samples (at most 16 generated tokens),
 following the greeting self-test and a streamed greeting. Each variant uses
@@ -107,3 +112,40 @@ Sources: [Qwen's 0.5B GGUF](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GG
 and [Unsloth's Qwen 3 0.6B Q4_K_M](https://huggingface.co/unsloth/Qwen3-0.6B-GGUF).
 The catalogue records exact revisions and hashes. Reproduce with
 `TNN_TEST_MODEL_ID=<catalogue-id> TNN_TEST_MODEL=<verified-file> cargo test -p tnn-core --test real_engine -- --ignored --nocapture`.
+
+## Larger Qwen compatibility measurements — 2026-10-26
+
+Same Intel i3-3217U host, 2 physical-core threads, 2048-token context and
+`prism-b10826-c9c34bc` engine. Each file is checked against the catalogue's
+exact size, SHA-256 and `qwen2` architecture before loading. Backends are
+isolated, with no fallback; thinking is disabled. These are short
+`EngineManager::benchmark` samples (up to 16 output tokens), taken on a shared
+development machine while other validation files were downloading. They are
+compatibility measurements, not controlled release performance benchmarks.
+
+| Model / quant | Backend | Prompt t/s | Generation t/s |
+|---|---|---:|---:|
+| Qwen 2.5 Instruct 1.5B Q4_K_M | Native | 6.56 | 5.03 |
+| Qwen 2.5 Instruct 1.5B Q4_K_M | x64/SSE2 | 0.87 | 0.70 |
+| Qwen 2.5 Instruct 1.5B Q4_K_M | SSSE3 | 0.79 | 0.70 |
+| Qwen 2.5 Instruct 7B Q4_K_M | Native | 1.16 | 1.35 |
+| Qwen 2.5 Instruct 7B Q4_K_M | x64/SSE2 | 0.21 | 0.19 |
+| Qwen 2.5 Instruct 7B Q4_K_M | SSSE3 | 0.21 | 0.19 |
+
+The 1.5B gate completed in 295.07 seconds. All three backends returned a
+coherent greeting without reasoning output and removed their PID files on
+shutdown. This verifies basic compatibility; baseline CPU inference is slow
+and long prompts will take considerably longer.
+
+The initial 7B run passed native inference but exceeded the old 90-second
+startup self-test deadline on SSE2. The self-test deadline is now 300 seconds,
+and the opt-in gate allows 900 seconds per backend for startup, streaming and
+benchmarking together. The subsequent SSE2 run passed with coherent output
+and clean shutdown. The table uses the subsequent run's native measurement.
+The full subsequent native/SSE2/SSSE3 gate passed in 999.46 seconds, including
+non-thinking streaming and PID cleanup on every backend. Expect very slow
+7B responses on baseline CPUs even when the model fits RAM.
+
+Sources: [Qwen 1.5B](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF) and
+[Bartowski's single-file Qwen 7B conversion](https://huggingface.co/bartowski/Qwen2.5-7B-Instruct-GGUF).
+The catalogue pins their exact revisions and file hashes.

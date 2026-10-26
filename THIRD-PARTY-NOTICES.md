@@ -23,8 +23,9 @@ installer.
 
 | Model family | Licence | Source |
 |---|---|---|
-| Ternary Bonsai 2 | Apache-2.0 | <https://huggingface.co/prism-ml> |
 | Qwen 2.5 Instruct 0.5B | Apache-2.0 | <https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF> |
+| Qwen 2.5 Instruct 1.5B | Apache-2.0 | <https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF> |
+| Qwen 2.5 Instruct 7B (Bartowski Q4_K_M conversion) | Apache-2.0 | <https://huggingface.co/bartowski/Qwen2.5-7B-Instruct-GGUF> / <https://huggingface.co/Qwen/Qwen2.5-7B-Instruct> |
 | Qwen 3 0.6B (Unsloth Q4_K_M conversion) | Apache-2.0 | <https://huggingface.co/unsloth/Qwen3-0.6B-GGUF> / <https://huggingface.co/Qwen/Qwen3-0.6B> |
 | BitNet b1.58 (experimental) | MIT | upstream model card |
 | Falcon3 (experimental) | Apache-2.0 | <https://huggingface.co/tiiuae> |

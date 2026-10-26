@@ -839,7 +839,9 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let core = core(dir.path());
         let error = core
-            .update_settings(&serde_json::json!({"active_model_id": "bonsai2-2b-pq2"}))
+            .update_settings(
+                &serde_json::json!({"active_model_id": "qwen2-5-1-5b-instruct-q4-k-m"}),
+            )
             .unwrap_err();
         assert_eq!(error.code(), "model_not_installed");
     }
@@ -872,7 +874,7 @@ mod tests {
         std::fs::write(&model_path, b"GGUF").unwrap();
         core.db
             .upsert_installed(&InstalledModel {
-                id: "bonsai2-2b-pq2".into(),
+                id: "qwen2-5-1-5b-instruct-q4-k-m".into(),
                 display_name: "Test".into(),
                 file_name: "fake.gguf".into(),
                 path: model_path.to_string_lossy().to_string(),
@@ -916,7 +918,7 @@ mod tests {
         std::fs::write(&path, b"GGUF").unwrap();
         core.db
             .upsert_installed(&InstalledModel {
-                id: "bonsai2-2b-pq2".into(),
+                id: "qwen2-5-1-5b-instruct-q4-k-m".into(),
                 display_name: "Test".into(),
                 file_name: "model.gguf".into(),
                 path: path.to_string_lossy().into_owned(),
@@ -928,7 +930,7 @@ mod tests {
             })
             .unwrap();
         let conversation = core
-            .create_conversation(Some("bonsai2-2b-pq2".into()))
+            .create_conversation(Some("qwen2-5-1-5b-instruct-q4-k-m".into()))
             .unwrap();
         core.db
             .append_message(

@@ -32,7 +32,8 @@ async fn length_limited_answer_continues_in_place() {
         .canonicalize()
         .unwrap();
     let catalog = Catalog::embedded().unwrap();
-    let model_id = std::env::var("TNN_TEST_MODEL_ID").unwrap_or_else(|_| "bonsai2-2b-pq2".into());
+    let model_id = std::env::var("TNN_TEST_MODEL_ID")
+        .unwrap_or_else(|_| "qwen2-5-1-5b-instruct-q4-k-m".into());
     let spec = catalog.get(&model_id).unwrap();
     verify::verify_sha256(&model, spec.sha256.as_deref().unwrap()).unwrap();
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))

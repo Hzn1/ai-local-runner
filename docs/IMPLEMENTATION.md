@@ -5,6 +5,15 @@ Active scope: Linux x64, following the product-owner instruction on
 human review gates remain in effect; existing code across later phases does
 not establish that those gates have passed.
 
+## Current model scope — 2026-10-26
+
+The product owner removed all Bonsai entries from the active catalogue.
+Supported downloadable choices are Qwen 2.5 Instruct 0.5B, 1.5B and 7B, plus
+Qwen 3 0.6B, all Q4_K_M with thinking disabled. Recommendations select 1.5B
+for smaller machines and 7B with at least 16 GB RAM outside minimum mode.
+The earlier Bonsai measurements below are historical records and do not
+describe the current catalogue. Existing phase review gates remain open.
+
 ## Phase 0 — Linux engine validation
 
 - The pinned Linux archive was fetched and verified with `fetch-engine.sh`.

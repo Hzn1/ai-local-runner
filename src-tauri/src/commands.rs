@@ -280,7 +280,7 @@ mod tests {
         std::fs::write(&model_path, b"GGUF").unwrap();
         core.db
             .upsert_installed(&InstalledModel {
-                id: "bonsai2-2b-pq2".into(),
+                id: "qwen2-5-1-5b-instruct-q4-k-m".into(),
                 display_name: "Test".into(),
                 file_name: "fake.gguf".into(),
                 path: model_path.to_string_lossy().into_owned(),

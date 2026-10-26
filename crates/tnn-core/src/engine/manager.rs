@@ -760,8 +760,8 @@ mod tests {
 
     fn installed() -> InstalledModel {
         InstalledModel {
-            id: "bonsai2-2b-pq2".into(),
-            display_name: "Bonsai 2 · 2B".into(),
+            id: "qwen2-5-1-5b-instruct-q4-k-m".into(),
+            display_name: "Qwen 2.5 Instruct · 1.5B".into(),
             file_name: "m.gguf".into(),
             path: "/tmp/m.gguf".into(),
             sha256: "a".repeat(64),
@@ -793,10 +793,10 @@ mod tests {
     fn balanced_machine_uses_catalog_defaults() {
         let hardware = hardware(8, 4);
         let catalog = Catalog::embedded().unwrap();
-        let spec = catalog.get("bonsai2-4b-pq2").unwrap();
+        let spec = catalog.get("qwen2-5-1-5b-instruct-q4-k-m").unwrap();
         let launch = EngineLaunch::create(installed(), Some(spec), &hardware, &Settings::default());
-        assert_eq!(launch.context_size, 4096);
-        assert_eq!(launch.max_tokens, 512);
+        assert_eq!(launch.context_size, 2048);
+        assert_eq!(launch.max_tokens, 256);
         assert_eq!(launch.threads, 4);
         assert_eq!(launch.batch_size, 512);
         assert!(!launch.enable_thinking);

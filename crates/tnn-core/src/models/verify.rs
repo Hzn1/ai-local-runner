@@ -144,7 +144,7 @@ mod tests {
 
     #[test]
     fn rejects_traversal_ids() {
-        assert!(validate_model_id("bonsai2-2b-pq2").is_ok());
+        assert!(validate_model_id("qwen2-5-1-5b-instruct-q4-k-m").is_ok());
         assert!(validate_model_id("../etc").is_err());
         assert!(validate_model_id("a/b").is_err());
         assert!(validate_model_id("").is_err());

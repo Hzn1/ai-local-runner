@@ -14,6 +14,11 @@
 
 ---
 
+> Model-scope update (2026-10-26): all Bonsai models were removed by product-owner
+> instruction. The active catalogue and recommendations are documented in
+> `docs/MODELS.md`. Bonsai sections below preserve the original plan and spike
+> history; they no longer define the supported models or performance gates.
+
 ## 0. Confirmed decisions
 
 These decisions were confirmed by the product owner and are not open for re-litigation during implementation unless a hard technical blocker is proven.
@@ -22,7 +27,7 @@ These decisions were confirmed by the product owner and are not open for re-liti
 |---|---|
 | Platforms | Windows 10/11 x64 and Linux x64. macOS is deferred. |
 | Frontend | Svelte 5 + TypeScript + Vite + Tailwind CSS |
-| Model scope | Bonsai 2 2B/4B/9B/27B as the main catalog, plus experimental BitNet and Falcon3 models |
+| Model scope | Qwen 2.5 Instruct 0.5B/1.5B/7B and Qwen 3 0.6B (Q4_K_M); experimental entries remain hidden |
 | Minimum hardware | **Officially support 4 GB RAM / 2 physical cores at ~3 tok/s**, with clear warnings and a “Minimum mode” |
 | V1 modality | Text-only chat |
 | Deferred | Vision, tool calling, MCP, local API, RAG, voice, mobile, macOS |

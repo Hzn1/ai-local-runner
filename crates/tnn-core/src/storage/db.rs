@@ -689,7 +689,9 @@ mod tests {
     #[test]
     fn conversation_lifecycle() {
         let db = Db::open_in_memory().unwrap();
-        let conversation = db.create_conversation("bonsai2-2b-pq2").unwrap();
+        let conversation = db
+            .create_conversation("qwen2-5-1-5b-instruct-q4-k-m")
+            .unwrap();
         assert_eq!(conversation.title, "New chat");
 
         let user = db
@@ -755,8 +757,8 @@ mod tests {
     fn installed_models_round_trip() {
         let db = Db::open_in_memory().unwrap();
         let model = InstalledModel {
-            id: "bonsai2-2b-pq2".into(),
-            display_name: "Bonsai 2 · 2B".into(),
+            id: "qwen2-5-1-5b-instruct-q4-k-m".into(),
+            display_name: "Qwen 2.5 Instruct · 1.5B".into(),
             file_name: "m.gguf".into(),
             path: "/tmp/m.gguf".into(),
             sha256: "a".repeat(64),

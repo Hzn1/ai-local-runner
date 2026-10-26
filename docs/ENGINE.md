@@ -82,7 +82,8 @@ Ready → Unloading → Stopped
 2. It allocates a free port, generates a 32-byte key, spawns the process and
    polls `/health` (100 ms interval, 120 s deadline).
 3. A tiny non-streaming completion (self-test) proves the model can answer and
-   the API key works.
+   the API key works. It has a 300-second deadline: larger Q4 models on the
+   SSE2 baseline can exceed the old 90-second limit on their first prompt.
 4. On `SIGILL`/illegal-instruction detection or crash-class startup failure,
    it retries once from `engine-baseline` and marks compatibility mode.
 5. Idle unload runs in `src-tauri` (default 30 min, configurable, disabled by
@@ -118,15 +119,17 @@ A pass proves the x64 baseline loads and the dispatcher does not execute AVX2.
 It does not replace the full 4 GB VM chat test.
 
 Known-good reference: Intel i3-3217U (Ivy Bridge, no AVX2), 2 threads,
-2B PQ2_0 at 2.98 tok/s generation / 4.75 tok/s prompt.
+Qwen 2.5 Instruct 1.5B Q4_K_M at 5.03 tok/s generation / 6.56 tok/s prompt
+in a short native-backend compatibility sample. See `docs/benchmarks.md` for
+measurement limits; this is not a controlled pp64/tg32 baseline.
 
 ### Real inference gate (Linux)
 
-Fetch the pinned Linux engine, then provide the exact catalogue 2B model:
+Fetch the pinned Linux engine, then provide the exact catalogue Qwen 1.5B model:
 
 ```bash
 scripts/fetch-engine.sh
-TNN_TEST_MODEL=/absolute/path/Ternary-Bonsai-2-2B-PQ2_0.gguf \
+TNN_TEST_MODEL=/absolute/path/qwen2.5-1.5b-instruct-q4_k_m.gguf \
   cargo test -p tnn-core --test real_engine -- --ignored --nocapture
 ```
 
@@ -154,7 +157,7 @@ to force truncation, then verifies that continuation keeps the same message,
 prefix and conversation history:
 
 ```bash
-TNN_TEST_MODEL=/absolute/path/Ternary-Bonsai-2-2B-PQ2_0.gguf \
+TNN_TEST_MODEL=/absolute/path/qwen2.5-1.5b-instruct-q4_k_m.gguf \
   cargo test -p tnn-core --test continuation -- --ignored --nocapture
 ```
 
