@@ -126,30 +126,32 @@
     </div>
   </div>
 {:else if app.fatalError}
-  <div class="mx-auto flex min-h-full max-w-xl flex-col justify-center px-6 py-10">
-    <div class="mb-5 flex items-center gap-3">
-      <div class="flex size-11 items-center justify-center rounded-xl bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300">
-        <ShieldAlert class="size-6" aria-hidden="true" />
+  <div class="h-full overflow-y-auto">
+    <div class="mx-auto flex min-h-full max-w-xl flex-col justify-center px-6 py-10">
+      <div class="mb-5 flex items-center gap-3">
+        <div class="flex size-11 items-center justify-center rounded-xl bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300">
+          <ShieldAlert class="size-6" aria-hidden="true" />
+        </div>
+        <div>
+          <h1 class="text-lg font-semibold">{$t('errors.title')}</h1>
+          <p class="text-xs text-stone-500 dark:text-stone-400">{$t('app.name')}</p>
+        </div>
       </div>
-      <div>
-        <h1 class="text-lg font-semibold">{$t('errors.title')}</h1>
-        <p class="text-xs text-stone-500 dark:text-stone-400">{$t('app.name')}</p>
-      </div>
+      <ErrorCard error={app.fatalError} onAction={handleFatalAction} />
+      {#if !isTauri}
+        <p class="mt-3 text-xs text-stone-500 dark:text-stone-400">
+          {$t('app.desktopOnly')}
+        </p>
+      {/if}
+      <button
+        type="button"
+        class="btn-secondary mt-4 self-start text-xs"
+        onclick={() => window.location.reload()}
+      >
+        <RefreshCw class="size-3.5" aria-hidden="true" />
+        {$t('common.retry')}
+      </button>
     </div>
-    <ErrorCard error={app.fatalError} onAction={handleFatalAction} />
-    {#if !isTauri}
-      <p class="mt-3 text-xs text-stone-500 dark:text-stone-400">
-        {$t('app.desktopOnly')}
-      </p>
-    {/if}
-    <button
-      type="button"
-      class="btn-secondary mt-4 self-start text-xs"
-      onclick={() => window.location.reload()}
-    >
-      <RefreshCw class="size-3.5" aria-hidden="true" />
-      {$t('common.retry')}
-    </button>
   </div>
 {:else if router.route === 'onboarding'}
   <Onboarding />

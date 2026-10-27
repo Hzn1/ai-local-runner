@@ -227,7 +227,7 @@
   }
 </script>
 
-<div class="min-h-full overflow-y-auto bg-gradient-to-b from-brand-50 to-stone-50 dark:from-stone-950 dark:to-stone-900">
+<div class="h-full overflow-y-auto bg-gradient-to-b from-brand-50 to-stone-50 dark:from-stone-950 dark:to-stone-900">
   <div class="mx-auto flex min-h-full max-w-3xl flex-col px-6 py-8">
     <header class="flex items-center justify-between">
       <div class="flex items-center gap-2.5">
