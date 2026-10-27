@@ -5,6 +5,7 @@ once, then talk to it entirely on your machine. No account, no cloud, no
 telemetry, and no network connection during a chat.
 
 - Tauri v2 desktop app (Linux x64; Windows x64 test builds available)
+- Experimental Android ARM64 APK builds; see [Android setup and phone testing](docs/ANDROID.md)
 - Svelte 5 + TypeScript frontend, Rust core, SQLite storage
 - Pinned [PrismML llama.cpp](https://github.com/PrismML-Eng/llama.cpp) CPU build
   with runtime dispatch: SSE2/x64, SSSE3 and newer tiers, no AVX2 requirement

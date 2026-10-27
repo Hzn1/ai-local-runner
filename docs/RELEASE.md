@@ -1,5 +1,11 @@
 # Release
 
+Android ARM64 has a local signed-debug-APK build path in [ANDROID.md](ANDROID.md).
+It embeds production frontend assets and the pinned ARM engine for sideloaded
+phone testing. It is experimental: Android device acceptance and production
+signing/distribution remain separate gates. Desktop updater keys are not used
+for this APK, and no Android signing key is committed.
+
 Linux x64 packaging targets `.deb` and AppImage. Windows x64 has a local NSIS
 test-installer build path in [WINDOWS.md](WINDOWS.md); native Windows acceptance
 and signing are still pending. Build and validate installers locally; the

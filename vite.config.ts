@@ -8,6 +8,8 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig({
   plugins: [tailwindcss(), svelte()],
   clearScreen: false,
+  // Engine sources under target/ include a separate web UI. Scan this app only.
+  optimizeDeps: { entries: ['index.html'] },
   server: {
     port: 1420,
     strictPort: true,
@@ -20,7 +22,7 @@ export default defineConfig({
         }
       : undefined,
     watch: {
-      ignored: ['**/src-tauri/**', '**/crates/**'],
+      ignored: ['**/src-tauri/**', '**/crates/**', '**/target/**'],
     },
   },
   envPrefix: ['VITE_', 'TAURI_ENV_*'],
@@ -28,7 +30,11 @@ export default defineConfig({
     // Tauri uses Chromium on Windows and WebKitGTK on Linux.
     // Safari 14 is the first WebKit target with BigInt literals, which the
     // generated IPC bindings use for u64 fields.
-    target: process.env.TAURI_ENV_PLATFORM === 'windows' ? 'chrome105' : 'safari14',
+    target: ['windows', 'android'].includes(
+      process.env.TAURI_ENV_PLATFORM ?? '',
+    )
+      ? 'chrome105'
+      : 'safari14',
     // Vite 8 ships Rolldown/Oxc instead of esbuild.
     minify: process.env.TAURI_ENV_DEBUG ? false : 'oxc',
     sourcemap: Boolean(process.env.TAURI_ENV_DEBUG),

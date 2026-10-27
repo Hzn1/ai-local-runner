@@ -1,6 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
+  "platforms": ["linux", "windows", "macOS"],
   "description": "Least-privilege capabilities for the main window. No shell, no broad filesystem access.",
   "windows": ["main"],
   "permissions": [

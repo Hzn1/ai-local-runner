@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "app": {
+    "windows": [{ "label": "main", "title": "TNN Local AI", "useHttpsScheme": true }]
+  },
+  "bundle": {
+    "icon": ["gen/android/app/src/main/res/mipmap-mdpi/ic_launcher.png"],
+    "resources": [],
+    "createUpdaterArtifacts": false,
+    "android": { "minSdkVersion": 28 }
+  }
+}

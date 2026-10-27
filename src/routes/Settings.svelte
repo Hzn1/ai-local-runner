@@ -22,7 +22,7 @@
   import { app } from '../stores/app.svelte';
   import { chat } from '../stores/chat.svelte';
   import { router } from '../lib/router.svelte';
-  import { api } from '../lib/tauri';
+  import { api, isAndroid } from '../lib/tauri';
   import { normalizeError } from '../lib/errors';
   import {
     formatBytes,
@@ -141,7 +141,7 @@
     error = null;
     try {
       const path = await api.exportDiagnostics();
-      toast.success($t('settings.diagnosticsExported', { values: { path } }));
+      toast.success(isAndroid ? $t('common.exportReady') : $t('settings.diagnosticsExported', { values: { path } }));
     } catch (caught) {
       error = normalizeError(caught);
     } finally {
@@ -404,6 +404,9 @@
             <Download class="size-4 text-brand-700 dark:text-brand-300" aria-hidden="true" />
             {$t('settings.updatesSection')}
           </h2>
+          {#if isAndroid}
+            <p class="hint mt-3">{$t('settings.androidUpdates')}</p>
+          {:else}
           <div class="mt-3 flex items-center justify-between gap-4">
             <div>
               <p class="text-sm font-medium">{$t('settings.checkUpdates')}</p>
@@ -415,6 +418,7 @@
               {checkingUpdates ? $t('settings.checkingUpdates') : $t('settings.checkUpdates')}
             </button>
           </div>
+          {/if}
         </section>
 
         <section class="card p-5">
@@ -427,14 +431,18 @@
             <button type="button" class="btn-secondary text-xs" disabled={exporting} onclick={exportDiagnostics}>
               {$t('settings.exportDiagnostics')}
             </button>
+            {#if !isAndroid}
             <button type="button" class="btn-ghost text-xs" onclick={() => api.openDataDir()}>
               <FolderOpen class="size-3.5" aria-hidden="true" />
               {$t('settings.openData')}
             </button>
+            {/if}
+            {#if !isAndroid}
             <button type="button" class="btn-ghost text-xs" onclick={() => api.openLogs()}>
               <FolderOpen class="size-3.5" aria-hidden="true" />
               {$t('settings.openLogs')}
             </button>
+            {/if}
           </div>
         </section>
 
@@ -623,17 +631,21 @@
           <h2 class="text-sm font-semibold">{$t('settings.engineTier')}</h2>
           <p class="mt-1 text-sm capitalize">{tier}</p>
           <p class="hint mt-1">
-            {$t('hardware.tier')}: {app.hardware?.tier ?? '—'} · {$t('hardware.noAvx2')}
+            {$t('hardware.tier')}: {app.hardware?.tier ?? '—'}{#if !isAndroid} · {$t('hardware.noAvx2')}{/if}
           </p>
           <div class="mt-3 flex flex-wrap gap-2">
+            {#if !isAndroid}
             <button type="button" class="btn-ghost text-xs" onclick={() => api.openDataDir()}>
               <FolderOpen class="size-3.5" aria-hidden="true" />
               {$t('settings.openData')}
             </button>
+            {/if}
+            {#if !isAndroid}
             <button type="button" class="btn-ghost text-xs" onclick={() => api.openLogs()}>
               <FolderOpen class="size-3.5" aria-hidden="true" />
               {$t('settings.openLogs')}
             </button>
+            {/if}
           </div>
         </section>
 

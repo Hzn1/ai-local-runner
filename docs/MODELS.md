@@ -9,6 +9,11 @@ These entries are downloadable when their RAM requirements fit the machine.
 Automatic recommendations select among the validated Qwen models by RAM and
 minimum-mode limits.
 
+Experimental Android builds initially recommend the existing Qwen 3 0.6B
+entry and default to at most four CPU threads. This is a conservative test
+default, not an Android performance claim. Larger eligible models remain
+selectable; device inference/performance acceptance is still required.
+
 | ID | Display name | Quant | Download | Minimum RAM | Notes |
 |---|---|---:|---:|---:|---|
 | `qwen2-5-0-5b-instruct-q4-k-m` | Qwen 2.5 Instruct · 0.5B | Q4_K_M | 491 MB | 4 GB | Small instruction-tuned chat model; official Qwen GGUF |

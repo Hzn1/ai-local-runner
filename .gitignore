@@ -2,7 +2,10 @@
 /dist
 /node_modules
 /src-tauri/target
-/src-tauri/gen
+/src-tauri/gen/*
+!/src-tauri/gen/android/
+/src-tauri/android/engine/
+/artifacts/
 /src-tauri/resources/engine/*
 !/src-tauri/resources/engine/.gitkeep
 /src-tauri/resources/engine-baseline/*
@@ -23,4 +26,6 @@ test-results/
 coverage/
 # Never commit update signing keys.
 *.key
+*.jks
+*.keystore
 !*.key.pub

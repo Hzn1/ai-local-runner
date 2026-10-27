@@ -213,6 +213,9 @@ impl Catalog {
             .filter(|model| model.is_downloadable() && !model.experimental)
             .filter(|model| hardware.total_ram_bytes >= model.min_ram_bytes)
             .filter(|model| !hardware.minimum_mode || model.params_b <= 2.0)
+            // Start Android testing with the small, existing Qwen entries.
+            // Larger models remain selectable; phone performance is unproven.
+            .filter(|model| !hardware.is_android() || model.params_b <= 0.6)
             .collect();
         candidates.sort_by(|a, b| {
             (hardware.total_ram_bytes >= a.recommended_ram_bytes)
@@ -386,6 +389,22 @@ mod tests {
         assert_eq!(
             catalog.recommended_id(&hardware(8, 4)),
             Some("qwen2-5-1-5b-instruct-q4-k-m")
+        );
+    }
+
+    #[test]
+    fn android_starts_with_a_small_model_even_with_eight_gb() {
+        let catalog = Catalog::embedded().unwrap();
+        let mut phone = hardware(8, 8);
+        phone.os = "Redmi 13 (Android 14)".into();
+        phone.arch = "aarch64".into();
+        assert_eq!(catalog.recommended_id(&phone), Some("qwen3-0-6b-q4-k-m"));
+        assert_eq!(phone.default_threads(), 4);
+        assert!(
+            catalog
+                .get("qwen2-5-1-5b-instruct-q4-k-m")
+                .unwrap()
+                .is_downloadable()
         );
     }
 

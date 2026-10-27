@@ -9,7 +9,7 @@
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
-use sysinfo::{Disks, System};
+use sysinfo::System;
 use ts_rs::TS;
 
 use crate::errors::Result;
@@ -81,7 +81,14 @@ impl HardwareProfile {
         let mut system = System::new_all();
         system.refresh_all();
 
-        let logical_cores = system.cpus().len().max(1);
+        let logical_cores = system.cpus().len().max(
+            std::thread::available_parallelism()
+                .map(usize::from)
+                .unwrap_or(1),
+        );
+        #[cfg(target_os = "android")]
+        let physical_cores = logical_cores;
+        #[cfg(not(target_os = "android"))]
         let physical_cores = physical_cores(&system).unwrap_or_else(|| (logical_cores / 2).max(1));
         let total_ram = system.total_memory();
         let available_ram = system.available_memory();
@@ -98,7 +105,7 @@ impl HardwareProfile {
             None => std::env::consts::OS.to_string(),
         };
 
-        let free_disk = free_disk_bytes(disk_probe);
+        let free_disk = crate::models::verify::free_disk_bytes(disk_probe);
 
         Ok(Self::from_parts(
             os,
@@ -145,10 +152,11 @@ impl HardwareProfile {
         if minimum_mode {
             notes.push("minimum_mode".to_string());
         }
-        if !features.sse42 {
+        let x86 = arch == "x86_64" || arch == "x86";
+        if x86 && !features.sse42 {
             notes.push("webview_may_require_sse42".to_string());
         }
-        if !features.avx2 {
+        if x86 && !features.avx2 {
             notes.push("no_avx2_using_dispatch".to_string());
         }
         if free_disk_bytes < 3 * gib {
@@ -194,9 +202,23 @@ impl HardwareProfile {
         )
     }
 
-    /// Threads = physical cores, capped at 8. Always at least one.
+    pub fn is_android(&self) -> bool {
+        self.os.contains("Android")
+    }
+
+    /// Conservative foreground defaults: up to 4 physical cores on phones,
+    /// 8 on desktops. Explicit overrides still cannot exceed physical cores.
     pub fn default_threads(&self) -> usize {
-        self.physical_cores.clamp(1, 8)
+        self.physical_cores
+            .clamp(1, if self.is_android() { 4 } else { 8 })
+    }
+
+    pub fn engine_tier(&self) -> &str {
+        if self.arch == "aarch64" {
+            "arm64"
+        } else {
+            self.features.best_engine_tier()
+        }
     }
 
     pub fn default_context(&self) -> u32 {
@@ -229,6 +251,7 @@ impl HardwareProfile {
     }
 }
 
+#[cfg(not(target_os = "android"))]
 fn physical_cores(system: &System) -> Option<usize> {
     // `physical_core_count` is an associated function in current sysinfo.
     let count = System::physical_core_count();
@@ -238,28 +261,6 @@ fn physical_cores(system: &System) -> Option<usize> {
     // Fallback for containers that do not expose topology.
     let logical = system.cpus().len();
     (logical > 0).then(|| (logical / 2).max(1))
-}
-
-fn free_disk_bytes(path: &Path) -> u64 {
-    let disks = Disks::new_with_refreshed_list();
-    let mut best: Option<(usize, u64)> = None;
-    for disk in disks.list() {
-        let mount = disk.mount_point();
-        if path.starts_with(mount) {
-            let depth = mount.components().count();
-            if best.map(|(d, _)| depth > d).unwrap_or(true) {
-                best = Some((depth, disk.available_space()));
-            }
-        }
-    }
-    best.map(|(_, free)| free).unwrap_or_else(|| {
-        disks
-            .list()
-            .iter()
-            .map(|d| d.available_space())
-            .max()
-            .unwrap_or(0)
-    })
 }
 
 #[cfg(target_arch = "x86_64")]
@@ -282,10 +283,7 @@ fn detect_features() -> CpuFeatures {
 
 #[cfg(not(target_arch = "x86_64"))]
 fn detect_features() -> CpuFeatures {
-    CpuFeatures {
-        sse2: true,
-        ..Default::default()
-    }
+    CpuFeatures::default()
 }
 
 #[cfg(test)]
@@ -355,5 +353,27 @@ mod tests {
             ..Default::default()
         };
         assert_eq!(f.best_engine_tier(), "sse42");
+    }
+
+    #[test]
+    fn arm64_phone_uses_arm_tier_without_x86_warnings() {
+        let hw = HardwareProfile::from_parts(
+            "Android".into(),
+            "aarch64".into(),
+            "ARM".into(),
+            8,
+            8,
+            8 * 1024_u64.pow(3),
+            4 * 1024_u64.pow(3),
+            10 * 1024_u64.pow(3),
+            CpuFeatures::default(),
+        );
+        assert_eq!(hw.engine_tier(), "arm64");
+        assert!(
+            !hw.notes
+                .iter()
+                .any(|note| note.contains("sse") || note.contains("avx"))
+        );
+        assert_eq!(hw.default_threads(), 4);
     }
 }

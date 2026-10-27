@@ -31,7 +31,12 @@ pub struct GgufInfo {
 }
 
 pub fn read_gguf_info(path: &Path) -> Result<GgufInfo> {
-    let mut file = File::open(path)?;
+    read_gguf_file(File::open(path)?)
+}
+
+/// Parse a file granted by a platform document picker without needing a
+/// globally accessible filesystem path.
+pub fn read_gguf_file(mut file: File) -> Result<GgufInfo> {
     let file_size = file.metadata()?.len();
     let mut magic = [0_u8; 4];
     file.read_exact(&mut magic).map_err(corrupt)?;

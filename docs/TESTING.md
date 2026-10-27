@@ -1,5 +1,12 @@
 # Testing
 
+Experimental Android ARM64 builds have an APK verification script and a
+separate [phone test matrix](ANDROID.md). Core tests include descriptor-based
+GGUF import, exact copied bytes/hash, rejection without partial installs,
+ARM hardware tiering and physical-core thread caps. APK verification checks
+signatures, ABI, engine/frontend/licence payloads, absence of model weights and
+keys, and 16 KB ELF alignment. These do not replace on-device inference tests.
+
 Targets: Linux x64 and Windows x64 hardware test builds. The Windows checks
 below need native Windows evidence; the Linux suite cannot establish them.
 See [WINDOWS.md](WINDOWS.md) for prerequisites, local installer builds and

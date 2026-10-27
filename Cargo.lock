@@ -4946,6 +4946,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
+ "jni 0.21.1",
  "serde",
  "serde_json",
  "tauri",

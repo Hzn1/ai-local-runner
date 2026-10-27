@@ -14,7 +14,7 @@
   import { app } from '../stores/app.svelte';
   import { chat } from '../stores/chat.svelte';
   import { router } from '../lib/router.svelte';
-  import { api } from '../lib/tauri';
+  import { api, isAndroid } from '../lib/tauri';
   import { normalizeError } from '../lib/errors';
   import { formatNumber } from '../lib/format';
   import type { RecoveryAction } from '../lib/bindings/index';
@@ -101,7 +101,7 @@
     try {
       const path = await chat.exportConversation(format);
       if (path) {
-        toast.success($t('chat.exported', { values: { path } }));
+        toast.success(isAndroid ? $t('common.exportReady') : $t('chat.exported', { values: { path } }));
       }
     } catch (error) {
       toast.error(normalizeError(error).message);

@@ -13,7 +13,6 @@ chrono.workspace = true
 futures-util.workspace = true
 hex.workspace = true
 rand.workspace = true
-raw-cpuid.workspace = true
 reqwest.workspace = true
 rusqlite.workspace = true
 rusqlite_migration.workspace = true
@@ -31,6 +30,9 @@ zip.workspace = true
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
+
+[target.'cfg(target_arch = "x86_64")'.dependencies]
+raw-cpuid.workspace = true
 
 [dev-dependencies]
 mock-engine = { path = "../mock-engine" }

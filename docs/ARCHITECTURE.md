@@ -23,6 +23,14 @@
 The engine is a sidecar process, never a library. Rust owns its lifetime and is
 the only process that talks to it. The webview has no socket to the engine.
 
+Android ARM64 keeps this boundary: a PIE executable named `libtnn_engine.so`
+is packaged in the APK native-library directory and launched by the same core
+supervisor. Native-library extraction permits execution on Android 10+ without
+putting code in writable app data. JNI only resolves platform paths, receives
+document-picker file descriptors and opens the export share sheet. Mobile
+activity suspension pauses downloads and stops inference; there is no background
+service. See [ANDROID.md](ANDROID.md) for packaging and device acceptance.
+
 ## Crates
 
 ### `crates/tnn-core`

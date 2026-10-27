@@ -15,7 +15,7 @@
   import { app } from '../stores/app.svelte';
   import { api } from '../lib/tauri';
   import { normalizeError } from '../lib/errors';
-  import { isTauri } from '../lib/tauri';
+  import { isTauri, isAndroid } from '../lib/tauri';
   import {
     formatBytes,
     formatNumber,
@@ -211,6 +211,7 @@
           <Import class="size-4" aria-hidden="true" />
           {$t('common.import')}
         </button>
+        {#if !isAndroid}
         <button
           type="button"
           class="btn-ghost px-3 text-xs"
@@ -220,6 +221,7 @@
         >
           <FolderOpen class="size-4" aria-hidden="true" />
         </button>
+        {/if}
       </div>
     </div>
 
@@ -245,9 +247,9 @@
               values: { free: formatBytes(storage.free_disk_bytes) },
             })}
           </p>
-          <p class="mt-0.5 truncate text-[0.7rem] text-stone-400 dark:text-stone-500">
+          {#if !isAndroid}<p class="mt-0.5 truncate text-[0.7rem] text-stone-400 dark:text-stone-500">
             {$t('models.dataFolder', { values: { path: storage.models_dir } })}
-          </p>
+          </p>{/if}
         </div>
       </div>
     {/if}
@@ -255,6 +257,7 @@
     <div class="mt-8">
       <div class="flex items-center justify-between">
         <h2 class="section-title">{$t('models.installedTitle')}</h2>
+        {#if !isAndroid}
         <button
           type="button"
           class="btn-ghost px-2 py-1 text-xs"
@@ -263,6 +266,7 @@
         >
           <RefreshCw class="size-3.5" aria-hidden="true" />
         </button>
+        {/if}
       </div>
       {#if installed.length === 0}
         <p class="mt-3 rounded-2xl border border-dashed border-stone-300 p-6 text-center text-sm text-stone-500 dark:border-stone-700 dark:text-stone-400">

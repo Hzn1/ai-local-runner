@@ -23,8 +23,8 @@ pub fn remove_pid_file(paths: &Paths) {
 
 /// Kill a stale engine left behind by a previous run.
 ///
-/// Only a PID whose process name actually contains `llama-server` is killed, so
-/// PID reuse cannot take out an unrelated program.
+/// Only a PID whose process name identifies the shipped engine is killed;
+/// stale PID files must not take out an unrelated program after PID reuse.
 pub fn cleanup_orphan(paths: &Paths) -> Result<bool> {
     let Ok(contents) = fs::read_to_string(&paths.pid_file) else {
         return Ok(false);
@@ -39,13 +39,19 @@ pub fn cleanup_orphan(paths: &Paths) -> Result<bool> {
         system.refresh_all();
         if let Some(process) = system.process(Pid::from_u32(pid)) {
             let name = process.name().to_string_lossy().to_ascii_lowercase();
-            if name.contains("llama-server") {
+            if is_engine_name(&name) {
                 killed = process.kill();
             }
         }
     }
     remove_pid_file(paths);
     Ok(killed)
+}
+
+fn is_engine_name(name: &str) -> bool {
+    // Linux/Android comm names have only 15 usable bytes. The APK executable
+    // name has 16, so sysinfo can report the truncated form after a crash.
+    name.contains("llama-server") || matches!(name, "libtnn_engine.so" | "libtnn_engine.s")
 }
 
 /// Send SIGTERM (Unix), wait up to two seconds, then force-kill.
@@ -105,6 +111,15 @@ pub fn ensure_executable(path: &Path) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn recognizes_android_process_names_without_matching_unrelated_programs() {
+        assert!(is_engine_name("libtnn_engine.so"));
+        assert!(is_engine_name("libtnn_engine.s"));
+        assert!(is_engine_name("llama-server"));
+        assert!(!is_engine_name("libtnn_engine_helper"));
+        assert!(!is_engine_name("unrelated-app"));
+    }
 
     #[test]
     fn pid_file_round_trip_and_cleanup_is_safe() {

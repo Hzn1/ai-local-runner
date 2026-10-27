@@ -24,7 +24,7 @@ use crate::events::{CoreEvent, DownloadProgress, DownloadState, DownloadStateEve
 use crate::models::catalog::{Catalog, ModelSpec};
 use crate::models::gguf;
 use crate::models::install::{
-    atomic_install, copy_and_hash, unique_destination, validate_import_source,
+    atomic_install, copy_file_and_hash, unique_destination, validate_import_source,
 };
 use crate::models::verify::{ensure_disk_space, is_allowed_model_url, validate_model_id};
 use crate::paths::Paths;
@@ -430,7 +430,7 @@ impl DownloadManager {
 
     /// Copy a user-selected GGUF into the managed models directory.
     pub async fn import(&self, source: PathBuf) -> Result<InstalledModel> {
-        let size = tokio::task::spawn_blocking({
+        tokio::task::spawn_blocking({
             let source = source.clone();
             move || validate_import_source(&source)
         })
@@ -439,9 +439,36 @@ impl DownloadManager {
             detail: error.to_string(),
         })??;
 
-        tokio::task::spawn_blocking({
-            let source = source.clone();
-            move || gguf::read_gguf_info(&source)
+        let file_name = source
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("imported-model.gguf")
+            .to_string();
+        self.import_file(std::fs::File::open(source)?, file_name)
+            .await
+    }
+
+    pub async fn import_file(
+        &self,
+        mut source: std::fs::File,
+        file_name: String,
+    ) -> Result<InstalledModel> {
+        use std::io::{Seek, SeekFrom};
+
+        let metadata = source.metadata()?;
+        let size = metadata.len();
+        if !metadata.is_file() || size < 1024 {
+            return Err(AppError::ModelCorrupt {
+                detail: "select a local GGUF model file".into(),
+            });
+        }
+        source = tokio::task::spawn_blocking(move || {
+            // Duplicated file descriptors share their cursor. Rewind before
+            // the full copy so the installed model retains its GGUF header.
+            source.seek(SeekFrom::Start(0))?;
+            gguf::read_gguf_file(source.try_clone()?)?;
+            source.seek(SeekFrom::Start(0))?;
+            Ok::<_, AppError>(source)
         })
         .await
         .map_err(|error| AppError::Storage {
@@ -450,49 +477,44 @@ impl DownloadManager {
 
         ensure_disk_space(&self.inner.paths.models_dir, size + 512 * 1024 * 1024)?;
 
-        let file_name = source
-            .file_name()
-            .and_then(|name| name.to_str())
-            .unwrap_or("imported-model.gguf")
-            .to_string();
         let destination = unique_destination(&self.inner.paths.models_dir, &file_name);
 
-        let (hash, destination_clone) = tokio::task::spawn_blocking({
-            let source = source.clone();
-            let destination = destination.clone();
-            move || {
-                let hash = copy_and_hash(&source, &destination, |_, _| {})?;
-                Ok::<_, AppError>((hash, destination))
+        // Once copying starts, finish the install and DB registration in the
+        // same blocking task even if the IPC future is dropped. A cancelled
+        // waiter must not leave a complete but unregistered model on disk.
+        let db = self.inner.db.clone();
+        tokio::task::spawn_blocking(move || {
+            let hash = copy_file_and_hash(source, &destination, |_, _| {})?;
+            let stem = destination
+                .file_stem()
+                .and_then(|stem| stem.to_str())
+                .unwrap_or("Imported model")
+                .to_string();
+            let installed = InstalledModel {
+                id: format!("imported-{}", &hash[..16]),
+                display_name: stem,
+                file_name: destination
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .unwrap_or("imported-model.gguf")
+                    .to_string(),
+                path: destination.to_string_lossy().to_string(),
+                sha256: hash,
+                size_bytes: size,
+                installed_at: now_millis(),
+                last_used_at: None,
+                source: ModelSource::Imported,
+            };
+            if let Err(error) = db.upsert_installed(&installed) {
+                let _ = std::fs::remove_file(&destination);
+                return Err(error);
             }
+            Ok(installed)
         })
         .await
         .map_err(|error| AppError::Storage {
             detail: error.to_string(),
-        })??;
-
-        let stem = destination_clone
-            .file_stem()
-            .and_then(|stem| stem.to_str())
-            .unwrap_or("Imported model")
-            .to_string();
-        let id = format!("imported-{}", &hash[..16]);
-        let installed = InstalledModel {
-            id,
-            display_name: stem,
-            file_name: destination_clone
-                .file_name()
-                .and_then(|name| name.to_str())
-                .unwrap_or("imported-model.gguf")
-                .to_string(),
-            path: destination_clone.to_string_lossy().to_string(),
-            sha256: hash,
-            size_bytes: size,
-            installed_at: now_millis(),
-            last_used_at: None,
-            source: ModelSource::Imported,
-        };
-        self.inner.db.upsert_installed(&installed)?;
-        Ok(installed)
+        })?
     }
 
     fn part_size(&self, spec: &ModelSpec) -> u64 {

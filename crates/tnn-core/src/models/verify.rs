@@ -59,6 +59,20 @@ pub fn verify_sha256(path: &Path, expected: &str) -> Result<()> {
 
 /// Free space on the volume containing `path`.
 pub fn free_disk_bytes(path: &Path) -> u64 {
+    // Android does not expose a complete mount table to ordinary apps.
+    // Query the actual app-data volume rather than choosing another disk.
+    #[cfg(unix)]
+    {
+        use std::os::unix::ffi::OsStrExt;
+        if let Ok(path) = std::ffi::CString::new(path.as_os_str().as_bytes()) {
+            let mut stat = std::mem::MaybeUninit::<libc::statvfs>::uninit();
+            // SAFETY: path is NUL terminated and stat is a valid output pointer.
+            if unsafe { libc::statvfs(path.as_ptr(), stat.as_mut_ptr()) } == 0 {
+                let stat = unsafe { stat.assume_init() };
+                return (stat.f_bavail as u64).saturating_mul(stat.f_frsize as u64);
+            }
+        }
+    }
     let disks = sysinfo::Disks::new_with_refreshed_list();
     let mut best: Option<(usize, u64)> = None;
     for disk in disks.list() {

@@ -19,5 +19,15 @@
       "archive_root": ""
     }
   },
-  "baseline_cpu_variant": "x64"
+  "baseline_cpu_variant": "x64",
+  "android": {
+    "abi": "arm64-v8a",
+    "commit": "c9c34bc9c4042c13a31598ebf43461cd0ad8f00d",
+    "source_url": "https://codeload.github.com/PrismML-Eng/llama.cpp/tar.gz/c9c34bc9c4042c13a31598ebf43461cd0ad8f00d",
+    "source_sha256": "d2e5bf5fde7900a44dd3f57e5bad5b0575e4e1cf53f092f089af423877257ce8",
+    "ndk_version": "28.2.13676358",
+    "api_level": 28,
+    "cpu_arch": "armv8-a",
+    "executable": "libtnn_engine.so"
+  }
 }

@@ -310,6 +310,21 @@ impl AppCore {
         self.engine.stop().await;
     }
 
+    /// Mobile foreground-only policy: persist resumable downloads and stop
+    /// inference when Android suspends the activity. Resuming stays explicit.
+    pub async fn suspend(&self) -> Result<()> {
+        let paused = (|| -> Result<()> {
+            for download in self.db.downloads()? {
+                if self.downloads.is_active(&download.model_id) {
+                    let _ = self.downloads.pause(&download.model_id);
+                }
+            }
+            Ok(())
+        })();
+        self.stop_engine().await;
+        paused
+    }
+
     // -------------------------------------------------------------- chatting
 
     pub fn create_conversation(&self, model_id: Option<String>) -> Result<Conversation> {
@@ -685,6 +700,14 @@ impl AppCore {
 
     pub async fn import_model(&self, path: PathBuf) -> Result<InstalledModel> {
         self.downloads.import(path).await
+    }
+
+    /// Import a document-picker file descriptor. The same GGUF validation,
+    /// hashing, disk-space guard and atomic install apply as for desktop files.
+    pub async fn import_model_file(&self, file: std::fs::File) -> Result<InstalledModel> {
+        self.downloads
+            .import_file(file, "imported-model.gguf".into())
+            .await
     }
 
     pub async fn delete_model(&self, model_id: &str) -> Result<()> {

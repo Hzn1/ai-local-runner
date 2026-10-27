@@ -4,11 +4,15 @@
 //! forwarding core events, idle engine unloading and orderly shutdown. All
 //! behaviour lives in `tnn-core`.
 
+#[cfg(target_os = "android")]
+mod android;
 mod commands;
 mod events;
 mod state;
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
+#[cfg(not(target_os = "android"))]
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -21,8 +25,11 @@ use tracing_subscriber::util::SubscriberInitExt;
 
 use crate::state::AppState;
 
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let builder = tauri::Builder::default()
+    let builder = tauri::Builder::default();
+    #[cfg(desktop)]
+    let builder = builder
         // Must be the first plugin so a second launch never builds a core.
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
             if let Some(window) = app.get_webview_window("main") {
@@ -32,14 +39,24 @@ pub fn run() {
             }
         }))
         .plugin(tauri_plugin_window_state::Builder::default().build())
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build());
+    let builder = builder
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
-        .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
+            #[cfg(target_os = "android")]
+            let data_dir = data_dir.join("files");
+            #[cfg(target_os = "android")]
+            let (engine_dir, baseline_dir) = {
+                let native_dir = android::native_library_dir()?;
+                (native_dir.clone(), native_dir)
+            };
+            #[cfg(not(target_os = "android"))]
             let engine_dir = resolve_engine_dir(app, "engine");
+            #[cfg(not(target_os = "android"))]
             let baseline_dir = resolve_engine_dir(app, "engine-baseline");
             let paths = Paths::new(data_dir, engine_dir, baseline_dir)?;
             let log_guard = init_logging(&paths.logs_dir);
@@ -102,6 +119,23 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("failed to build the Tauri application")
         .run(|app, event| {
+            #[cfg(mobile)]
+            if matches!(
+                event,
+                RunEvent::WindowEvent {
+                    event: tauri::WindowEvent::Suspended,
+                    ..
+                }
+            ) {
+                if let Some(state) = app.try_state::<AppState>() {
+                    let core = Arc::clone(&state.core);
+                    tauri::async_runtime::spawn(async move {
+                        if core.suspend().await.is_err() {
+                            tracing::warn!("could not persist suspended download state");
+                        }
+                    });
+                }
+            }
             if matches!(event, RunEvent::ExitRequested { .. }) {
                 let core = app
                     .try_state::<AppState>()
@@ -118,6 +152,7 @@ pub fn run() {
 }
 
 /// Where the engine lives in development and in a bundled app.
+#[cfg(not(target_os = "android"))]
 fn resolve_engine_dir(app: &tauri::App, name: &str) -> PathBuf {
     let mut candidates = Vec::new();
     if let Ok(resources) = app.path().resource_dir() {
@@ -185,4 +220,32 @@ fn spawn_idle_monitor(app: tauri::AppHandle) {
             core.engine.unload_if_idle(minutes).await;
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn android_default_window_icon_is_eight_bit_rgba() {
+        // Tauri's code generator preserves PNG channel depth, but Tao's
+        // runtime icon accepts exactly four bytes per pixel. A 16-bit RGBA
+        // icon compiles successfully and then aborts Android app startup.
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let config: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(root.join("tauri.android.conf.json")).unwrap())
+                .unwrap();
+        let icon = config["bundle"]["icon"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(serde_json::Value::as_str)
+            .find(|path| path.ends_with(".png"))
+            .expect("Android must configure a PNG window icon");
+        let png = std::fs::read(root.join(icon)).unwrap();
+        assert!(png.len() >= 29);
+        assert_eq!(&png[..8], b"\x89PNG\r\n\x1a\n");
+        assert_eq!(&png[12..16], b"IHDR");
+        assert_eq!(png[24], 8, "16-bit icons abort Tauri startup");
+        assert_eq!(png[25], 6, "the icon must have RGBA channels");
+        assert_eq!(png[28], 0, "the icon must not use interlacing");
+    }
 }

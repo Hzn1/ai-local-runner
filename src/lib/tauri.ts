@@ -17,6 +17,11 @@ import type { UpdateAvailable } from './bindings/UpdateAvailable';
 export const isTauri =
   typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
+export const isAndroid =
+  isTauri &&
+  typeof navigator !== 'undefined' &&
+  /Android/i.test(navigator.userAgent);
+
 export class NotInDesktopError extends Error {
   constructor() {
     super('This screen needs the desktop app. Run `npm run tauri dev`.');

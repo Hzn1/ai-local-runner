@@ -96,7 +96,9 @@ impl EngineLaunch {
         let mut context_size = settings
             .resolved_context(default_context)
             .clamp(512, context_max);
-        let mut threads = settings.resolved_threads(hardware.default_threads());
+        let mut threads = settings
+            .resolved_threads(hardware.default_threads())
+            .min(hardware.physical_cores.max(1));
         let mut max_tokens = settings
             .resolved_max_tokens(
                 spec.map(|model| model.max_tokens_default)
@@ -131,7 +133,7 @@ impl EngineLaunch {
             ubatch_size,
             sampling,
             enable_thinking: false,
-            tier: hardware.features.best_engine_tier().to_string(),
+            tier: hardware.engine_tier().to_string(),
         }
     }
 
@@ -345,6 +347,25 @@ impl EngineManager {
             unsafe {
                 command.pre_exec(|| {
                     libc::setpgid(0, 0);
+                    #[cfg(target_os = "android")]
+                    {
+                        // Android may kill the app without delivering an exit
+                        // callback. Never leave a model running after that.
+                        let parent = libc::getppid();
+                        if libc::prctl(
+                            libc::PR_SET_PDEATHSIG,
+                            libc::SIGKILL as libc::c_ulong,
+                            0 as libc::c_ulong,
+                            0 as libc::c_ulong,
+                            0 as libc::c_ulong,
+                        ) != 0
+                        {
+                            return Err(std::io::Error::last_os_error());
+                        }
+                        if parent == 1 || libc::getppid() != parent {
+                            libc::_exit(1);
+                        }
+                    }
                     Ok(())
                 });
             }

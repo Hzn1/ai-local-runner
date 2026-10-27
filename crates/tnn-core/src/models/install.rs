@@ -66,12 +66,19 @@ pub fn unique_destination(models_dir: &Path, file_name: &str) -> PathBuf {
 pub fn copy_and_hash(
     source: &Path,
     destination: &Path,
+    on_progress: impl FnMut(u64, u64),
+) -> Result<String> {
+    copy_file_and_hash(File::open(source)?, destination, on_progress)
+}
+
+pub fn copy_file_and_hash(
+    input: File,
+    destination: &Path,
     mut on_progress: impl FnMut(u64, u64),
 ) -> Result<String> {
-    let total = fs::metadata(source)?.len();
+    let total = input.metadata()?.len();
     let part = destination.with_extension("gguf.part");
     let result = (|| -> Result<String> {
-        let input = File::open(source)?;
         let output = File::create(&part)?;
         let mut reader = BufReader::with_capacity(1024 * 1024, input);
         let mut writer = BufWriter::with_capacity(1024 * 1024, output);
@@ -95,7 +102,10 @@ pub fn copy_and_hash(
 
     match result {
         Ok(hash) => {
-            atomic_install(&part, destination)?;
+            if let Err(error) = atomic_install(&part, destination) {
+                let _ = fs::remove_file(&part);
+                return Err(error);
+            }
             Ok(hash)
         }
         Err(error) => {

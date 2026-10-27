@@ -29,11 +29,13 @@
   const engineState = $derived(app.engine?.state ?? 'stopped');
 
   function newChat(): void {
+    router.sidebarOpen = false;
     void chat.newChat();
     router.navigate('chat');
   }
 
   function openConversation(id: string): void {
+    router.sidebarOpen = false;
     void chat.open(id);
     router.navigate('chat');
   }
@@ -50,7 +52,7 @@
 </script>
 
 <aside
-  class="flex h-full min-h-0 w-[17.5rem] shrink-0 flex-col border-r border-stone-200 bg-stone-100/70 dark:border-stone-800 dark:bg-stone-900/40"
+  class="flex h-full min-h-0 w-[17.5rem] max-w-[85vw] shrink-0 flex-col border-r border-stone-200 bg-stone-100 dark:border-stone-800 dark:bg-stone-900"
   aria-label={$t('nav.chatHistory')}
 >
   <div class="flex items-center gap-2 px-4 pt-5 pb-3">

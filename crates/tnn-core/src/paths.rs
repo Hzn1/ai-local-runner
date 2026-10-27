@@ -73,6 +73,10 @@ impl Paths {
     pub fn engine_executable(&self, dir: &Path) -> PathBuf {
         if cfg!(windows) {
             dir.join("llama-server.exe")
+        } else if cfg!(target_os = "android") {
+            // Android's package manager extracts lib*.so payloads to the
+            // read-only native library directory, where execution is allowed.
+            dir.join("libtnn_engine.so")
         } else {
             dir.join("llama-server")
         }

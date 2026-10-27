@@ -2,7 +2,7 @@
   import { t } from 'svelte-i18n';
   import { onMount } from 'svelte';
   import { Toaster, toast } from 'svelte-sonner';
-  import { MessageSquare, RefreshCw, ShieldAlert } from '@lucide/svelte';
+  import { Menu, MessageSquare, RefreshCw, ShieldAlert } from '@lucide/svelte';
   import Chat from './routes/Chat.svelte';
   import Models from './routes/Models.svelte';
   import Settings from './routes/Settings.svelte';
@@ -154,9 +154,37 @@
 {:else if router.route === 'onboarding'}
   <Onboarding />
 {:else}
-  <div class="flex h-full min-h-0">
-    <Sidebar />
-    <main class="min-w-0 flex-1">
+  <div class="flex h-full min-h-0 flex-col md:flex-row">
+    <header
+      class="flex shrink-0 items-center gap-3 border-b border-stone-200 px-3 py-2 md:hidden dark:border-stone-800"
+    >
+      <button
+        type="button"
+        class="btn-ghost p-2"
+        aria-label={$t('nav.toggleSidebar')}
+        aria-expanded={router.sidebarOpen}
+        onclick={() => (router.sidebarOpen = !router.sidebarOpen)}
+      >
+        <Menu class="size-5" aria-hidden="true" />
+      </button>
+      <span class="text-sm font-semibold">{$t('app.name')}</span>
+    </header>
+    {#if router.sidebarOpen}
+      <button
+        type="button"
+        class="fixed inset-0 z-30 bg-black/40 md:hidden"
+        aria-label={$t('common.close')}
+        onclick={() => (router.sidebarOpen = false)}
+      ></button>
+    {/if}
+    <div
+      class="fixed inset-y-0 left-0 z-40 h-full md:static md:block {router.sidebarOpen
+        ? 'block'
+        : 'hidden'}"
+    >
+      <Sidebar />
+    </div>
+    <main class="min-h-0 min-w-0 flex-1">
       {#if router.route === 'chat'}
         <Chat />
       {:else if router.route === 'models'}

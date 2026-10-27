@@ -34,6 +34,23 @@ when a newer CPU variant crashes with `SIGILL`.
 Binaries are intentionally ignored by git. The installer embeds the pruned
 directories; model weights are never embedded.
 
+### Android ARM64
+
+`scripts/build-engine-android.sh` builds the same engine commit with NDK r28c
+for baseline ARMv8-A / API 28. `engine.lock.json` pins the full source commit
+and archive SHA-256. Dependencies and libc++ are linked statically into a PIE
+executable, staged as `src-tauri/android/engine/arm64-v8a/libtnn_engine.so`.
+Gradle packages it under `lib/arm64-v8a/` and requests native-library extraction.
+The adapter resolves the installed `nativeLibraryDir` through Android's API;
+it never copies code to writable app data. There is no x86 fallback on ARM.
+Optional ARM instructions, GPU, OpenMP and the engine web UI are disabled in
+this baseline build. Runtime arguments and session authentication match desktop.
+
+The child requests `PR_SET_PDEATHSIG=SIGKILL` before exec, covering Android
+process death without normal app-exit callbacks. Activity suspension cancels
+generation and stops the model. Android inference/performance acceptance must
+be recorded on an actual phone; see [ANDROID.md](ANDROID.md).
+
 ## Spawn contract
 
 `tokio::process::Command`, no shell:

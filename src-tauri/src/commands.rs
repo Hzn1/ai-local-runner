@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use serde_json::Value;
 use tauri::State;
 use tauri_plugin_opener::OpenerExt;
+#[cfg(desktop)]
 use tauri_plugin_updater::UpdaterExt;
 use tnn_core::engine::{BenchmarkResult, EngineInfo, EngineStatus};
 use tnn_core::{
@@ -76,6 +77,13 @@ pub async fn delete_model(state: State<'_, AppState>, model_id: String) -> CmdRe
 
 #[tauri::command]
 pub async fn import_model(state: State<'_, AppState>, path: String) -> CmdResult<ModelCard> {
+    #[cfg(target_os = "android")]
+    if path.starts_with("content://") {
+        let file = crate::android::open_model_document(&path)
+            .map_err(|_| other("could not read the selected model document"))?;
+        let installed = state.core.import_model_file(file).await?;
+        return Ok(state.core.installed_card(&installed));
+    }
     let installed: InstalledModel = state.core.import_model(PathBuf::from(path)).await?;
     Ok(state.core.installed_card(&installed))
 }
@@ -184,6 +192,9 @@ pub fn export_conversation(
     format: String,
 ) -> CmdResult<String> {
     let path = state.core.export_conversation(&id, &format)?;
+    #[cfg(target_os = "android")]
+    crate::android::share_export(&path)
+        .map_err(|_| other("could not share the exported conversation"))?;
     Ok(path.to_string_lossy().to_string())
 }
 
@@ -212,6 +223,9 @@ pub async fn run_benchmark(
 #[tauri::command]
 pub async fn export_diagnostics(state: State<'_, AppState>) -> CmdResult<String> {
     let path = state.core.export_diagnostics(false).await?;
+    #[cfg(target_os = "android")]
+    crate::android::share_export(&path)
+        .map_err(|_| other("could not share the diagnostics export"))?;
     Ok(path.to_string_lossy().to_string())
 }
 
@@ -235,17 +249,22 @@ pub fn open_logs(app: tauri::AppHandle, state: State<'_, AppState>) -> CmdResult
 
 #[tauri::command]
 pub async fn check_for_updates(
-    app: tauri::AppHandle,
+    _app: tauri::AppHandle,
 ) -> CmdResult<Option<tnn_core::events::UpdateAvailable>> {
-    let updater = app.updater().map_err(|error| other(error.to_string()))?;
-    let update = updater
-        .check()
-        .await
-        .map_err(|error| other(error.to_string()))?;
-    Ok(update.map(|update| tnn_core::events::UpdateAvailable {
-        version: update.version.clone(),
-        notes: update.body.clone(),
-    }))
+    #[cfg(mobile)]
+    return Ok(None);
+    #[cfg(desktop)]
+    {
+        let updater = _app.updater().map_err(|error| other(error.to_string()))?;
+        let update = updater
+            .check()
+            .await
+            .map_err(|error| other(error.to_string()))?;
+        Ok(update.map(|update| tnn_core::events::UpdateAvailable {
+            version: update.version.clone(),
+            notes: update.body.clone(),
+        }))
+    }
 }
 
 #[cfg(test)]
